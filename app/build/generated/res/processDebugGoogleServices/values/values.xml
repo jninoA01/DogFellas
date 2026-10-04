@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="default_web_client_id" translatable="false">572572250627-qfdhpbcsh7a71e03gikn7enkl7datf4t.apps.googleusercontent.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">572572250627</string>
+    <string name="google_api_key" translatable="false">AIzaSyDe725EEf4ONpeRlGvQnryccCQJ_b8VlqY</string>
+    <string name="google_app_id" translatable="false">1:572572250627:android:7054522cb76a5b15e99436</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyDe725EEf4ONpeRlGvQnryccCQJ_b8VlqY</string>
+    <string name="google_storage_bucket" translatable="false">dogfellas-1efdf.firebasestorage.app</string>
+    <string name="project_id" translatable="false">dogfellas-1efdf</string>
+</resources>

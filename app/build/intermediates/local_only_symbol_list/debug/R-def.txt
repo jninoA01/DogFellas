@@ -1,0 +1,33 @@
+R_DEF: Internal format may change without notice
+local
+color ic_launcher_background
+color ic_launcher_foreground
+drawable ic_launcher_background
+drawable logo
+mipmap ic_launcher
+mipmap ic_launcher_foreground
+mipmap ic_launcher_round
+string app_name
+string btn_empezar
+string btn_entendido
+string btn_inicio
+string default_web_client_id
+string gcm_defaultSenderId
+string google_api_key
+string google_app_id
+string google_crash_reporting_api_key
+string google_storage_bucket
+string menu_atencion_medica
+string menu_encontre_mascota
+string menu_perdi_mascota
+string menu_voluntariado
+string modal_body
+string modal_title
+string project_id
+string sub_consejos
+string sub_emergencias
+string sub_medicamentos
+string sub_veterinarios
+string tagline
+style Theme.DogFellas
+xml file_paths

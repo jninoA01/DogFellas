@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.DogFellas" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#3D2B1F</item>
+        <item name="android:navigationBarColor">#3D2B1F</item>
+    </style>
+</resources>

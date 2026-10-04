@@ -1,0 +1,75 @@
+com.dogfellas.app-navigation-common-ktx-2.7.7-0 /home/choso/.gradle/caches/transforms-3/001313afe1fe7242342c4caae589d533/transformed/navigation-common-ktx-2.7.7/res
+com.dogfellas.app-foundation-release-1 /home/choso/.gradle/caches/transforms-3/00766416e9c0520ea07b6910f5a2c9a8/transformed/foundation-release/res
+com.dogfellas.app-firebase-common-20.4.2-2 /home/choso/.gradle/caches/transforms-3/03da3f88d436b012f8ae8c9dfc11fa85/transformed/firebase-common-20.4.2/res
+com.dogfellas.app-lifecycle-viewmodel-2.7.0-3 /home/choso/.gradle/caches/transforms-3/0852d3c90b9db8cb754d4790ce50b398/transformed/lifecycle-viewmodel-2.7.0/res
+com.dogfellas.app-coil-base-2.6.0-4 /home/choso/.gradle/caches/transforms-3/0cc1d742e3efbf60d46706ef4fadd33e/transformed/coil-base-2.6.0/res
+com.dogfellas.app-ui-tooling-release-5 /home/choso/.gradle/caches/transforms-3/0eb1e610a98e92660be2130be0b978d1/transformed/ui-tooling-release/res
+com.dogfellas.app-animation-core-release-6 /home/choso/.gradle/caches/transforms-3/139d2c43d417b31a376a536da1ac00e7/transformed/animation-core-release/res
+com.dogfellas.app-play-services-base-18.3.0-7 /home/choso/.gradle/caches/transforms-3/145b6d429ee77a857f83be775746be7c/transformed/play-services-base-18.3.0/res
+com.dogfellas.app-activity-1.8.2-8 /home/choso/.gradle/caches/transforms-3/1bc5c9a14d8c8c01269c63b1d0d375a2/transformed/activity-1.8.2/res
+com.dogfellas.app-lifecycle-viewmodel-compose-2.7.0-9 /home/choso/.gradle/caches/transforms-3/1c1809ed8626a4edf64319da49b78ca4/transformed/lifecycle-viewmodel-compose-2.7.0/res
+com.dogfellas.app-navigation-common-2.7.7-10 /home/choso/.gradle/caches/transforms-3/1dbba110c91324aa8536a70c9c066b85/transformed/navigation-common-2.7.7/res
+com.dogfellas.app-play-services-basement-18.3.0-11 /home/choso/.gradle/caches/transforms-3/1ecbd79f94b45280b93803094f556b2a/transformed/play-services-basement-18.3.0/res
+com.dogfellas.app-annotation-experimental-1.4.0-12 /home/choso/.gradle/caches/transforms-3/2cea7835b06745a1e4c99965af0996f0/transformed/annotation-experimental-1.4.0/res
+com.dogfellas.app-ui-text-release-13 /home/choso/.gradle/caches/transforms-3/2e420fdba84251d83f3c1dff7075aba6/transformed/ui-text-release/res
+com.dogfellas.app-material-release-14 /home/choso/.gradle/caches/transforms-3/30bb31d40be440617f82557cca2a1c55/transformed/material-release/res
+com.dogfellas.app-activity-ktx-1.8.2-15 /home/choso/.gradle/caches/transforms-3/391648534e0d120ce82ec0d35debdb59/transformed/activity-ktx-1.8.2/res
+com.dogfellas.app-ui-tooling-preview-release-16 /home/choso/.gradle/caches/transforms-3/3a78ca96cf86c92ba14cdbdcd6413be9/transformed/ui-tooling-preview-release/res
+com.dogfellas.app-lifecycle-process-2.7.0-17 /home/choso/.gradle/caches/transforms-3/3ac28d420e9070995d124abd497ed387/transformed/lifecycle-process-2.7.0/res
+com.dogfellas.app-appcompat-1.6.1-18 /home/choso/.gradle/caches/transforms-3/3c3c2f03c0b0f7f571bd0ba1cc54b2de/transformed/appcompat-1.6.1/res
+com.dogfellas.app-profileinstaller-1.3.1-19 /home/choso/.gradle/caches/transforms-3/3d6bc73f73e80b6746bc767afe40cb19/transformed/profileinstaller-1.3.1/res
+com.dogfellas.app-ui-release-20 /home/choso/.gradle/caches/transforms-3/4050eab5a3d83e74b9a4ccfa58f103a5/transformed/ui-release/res
+com.dogfellas.app-coordinatorlayout-1.0.0-21 /home/choso/.gradle/caches/transforms-3/47b3111246e44e575632407263c0ca9f/transformed/coordinatorlayout-1.0.0/res
+com.dogfellas.app-lifecycle-livedata-core-2.7.0-22 /home/choso/.gradle/caches/transforms-3/58b91fc0ffb37a1c7642f45bd7f8abac/transformed/lifecycle-livedata-core-2.7.0/res
+com.dogfellas.app-material3-release-23 /home/choso/.gradle/caches/transforms-3/5cc1d45cf95e5d80f308f71921296f21/transformed/material3-release/res
+com.dogfellas.app-navigation-runtime-ktx-2.7.7-24 /home/choso/.gradle/caches/transforms-3/5e4830d2674f26e1b76add031be2b448/transformed/navigation-runtime-ktx-2.7.7/res
+com.dogfellas.app-runtime-release-25 /home/choso/.gradle/caches/transforms-3/69f29e2925aebfbd16d30d184d3a3af9/transformed/runtime-release/res
+com.dogfellas.app-runtime-saveable-release-26 /home/choso/.gradle/caches/transforms-3/70ba6ac48015eb9bbae71f3e1152a17a/transformed/runtime-saveable-release/res
+com.dogfellas.app-play-services-measurement-api-21.5.0-27 /home/choso/.gradle/caches/transforms-3/7b30e5856af33773532bb3455e9aaaf4/transformed/play-services-measurement-api-21.5.0/res
+com.dogfellas.app-lifecycle-runtime-2.7.0-28 /home/choso/.gradle/caches/transforms-3/7c6f038f5028c74302ad641713332348/transformed/lifecycle-runtime-2.7.0/res
+com.dogfellas.app-maps-compose-4.3.3-29 /home/choso/.gradle/caches/transforms-3/7d190ba24fcc5f48ebaffdffc82ad392/transformed/maps-compose-4.3.3/res
+com.dogfellas.app-ui-geometry-release-30 /home/choso/.gradle/caches/transforms-3/7ef35ed1efd0a092e3752715f161067d/transformed/ui-geometry-release/res
+com.dogfellas.app-browser-1.4.0-31 /home/choso/.gradle/caches/transforms-3/820d107d15ffd08ad1d1edd1b9f92473/transformed/browser-1.4.0/res
+com.dogfellas.app-startup-runtime-1.1.1-32 /home/choso/.gradle/caches/transforms-3/826f095f2621b9129d811896e8526784/transformed/startup-runtime-1.1.1/res
+com.dogfellas.app-navigation-runtime-2.7.7-33 /home/choso/.gradle/caches/transforms-3/856a6ad3507b9d013731f380cd0fde96/transformed/navigation-runtime-2.7.7/res
+com.dogfellas.app-places-3.5.0-34 /home/choso/.gradle/caches/transforms-3/887e52e69490b4906149f92394205f20/transformed/places-3.5.0/res
+com.dogfellas.app-material-icons-core-release-35 /home/choso/.gradle/caches/transforms-3/8e583756257292bd1e4b0154d5495ac9/transformed/material-icons-core-release/res
+com.dogfellas.app-lifecycle-livedata-2.7.0-36 /home/choso/.gradle/caches/transforms-3/94cf2e6242231c21d61f31b7da434ee8/transformed/lifecycle-livedata-2.7.0/res
+com.dogfellas.app-recyclerview-1.0.0-37 /home/choso/.gradle/caches/transforms-3/9c4e4dd8daa2b71f54881d00eccd3bfa/transformed/recyclerview-1.0.0/res
+com.dogfellas.app-material-icons-extended-release-38 /home/choso/.gradle/caches/transforms-3/9f05ca04b3549d5650f60befe3eac1a7/transformed/material-icons-extended-release/res
+com.dogfellas.app-savedstate-1.2.1-39 /home/choso/.gradle/caches/transforms-3/a06e75f5071110bc436a09f89bb850d9/transformed/savedstate-1.2.1/res
+com.dogfellas.app-lifecycle-livedata-core-ktx-2.7.0-40 /home/choso/.gradle/caches/transforms-3/a40ff39b0899a67369985b0e26a4ef1c/transformed/lifecycle-livedata-core-ktx-2.7.0/res
+com.dogfellas.app-fragment-1.3.6-41 /home/choso/.gradle/caches/transforms-3/aa99d575bf315c8a0c9508c6ccc90167/transformed/fragment-1.3.6/res
+com.dogfellas.app-ui-test-manifest-1.6.1-42 /home/choso/.gradle/caches/transforms-3/ac3b913a182944b47f5defa435eee8dd/transformed/ui-test-manifest-1.6.1/res
+com.dogfellas.app-ads-adservices-java-1.0.0-beta05-43 /home/choso/.gradle/caches/transforms-3/af2894a8e527db5c844778c1cdf13287/transformed/ads-adservices-java-1.0.0-beta05/res
+com.dogfellas.app-foundation-layout-release-44 /home/choso/.gradle/caches/transforms-3/afddb7621341340a7831970193f76aa7/transformed/foundation-layout-release/res
+com.dogfellas.app-material-ripple-release-45 /home/choso/.gradle/caches/transforms-3/b54e8cdcc531a8e86ef25acccbdba9bd/transformed/material-ripple-release/res
+com.dogfellas.app-savedstate-ktx-1.2.1-46 /home/choso/.gradle/caches/transforms-3/b6f0513368bb45ad12ef5cea7860fd0f/transformed/savedstate-ktx-1.2.1/res
+com.dogfellas.app-ui-unit-release-47 /home/choso/.gradle/caches/transforms-3/bd73d683a957791a7630f59f990a5a40/transformed/ui-unit-release/res
+com.dogfellas.app-ads-adservices-1.0.0-beta05-48 /home/choso/.gradle/caches/transforms-3/bfd488512b15e3af1d46f1e341f76870/transformed/ads-adservices-1.0.0-beta05/res
+com.dogfellas.app-core-1.12.0-49 /home/choso/.gradle/caches/transforms-3/c5a2837b9c1b553a62e3b53a96a4069c/transformed/core-1.12.0/res
+com.dogfellas.app-customview-poolingcontainer-1.0.0-50 /home/choso/.gradle/caches/transforms-3/c9b51df80f4e2885500adad89527ad37/transformed/customview-poolingcontainer-1.0.0/res
+com.dogfellas.app-cardview-1.0.0-51 /home/choso/.gradle/caches/transforms-3/cbf2e48967271f2470d47810c0bf0c61/transformed/cardview-1.0.0/res
+com.dogfellas.app-ui-graphics-release-52 /home/choso/.gradle/caches/transforms-3/cd22d8467c3ed8f4e552e53373547dcd/transformed/ui-graphics-release/res
+com.dogfellas.app-core-ktx-1.12.0-53 /home/choso/.gradle/caches/transforms-3/d6fe686be3ee27f931196649b81808b6/transformed/core-ktx-1.12.0/res
+com.dogfellas.app-lifecycle-viewmodel-ktx-2.7.0-54 /home/choso/.gradle/caches/transforms-3/dbbbd608e9f5f5ad0449d0119763f3a3/transformed/lifecycle-viewmodel-ktx-2.7.0/res
+com.dogfellas.app-appcompat-resources-1.6.1-55 /home/choso/.gradle/caches/transforms-3/dc96974c9a2870f44704f771d7770918/transformed/appcompat-resources-1.6.1/res
+com.dogfellas.app-animation-release-56 /home/choso/.gradle/caches/transforms-3/ddb5a9610ab6acea06b8a72d38c5be6d/transformed/animation-release/res
+com.dogfellas.app-ui-tooling-data-release-57 /home/choso/.gradle/caches/transforms-3/dff9f79fbd2f879ab860c8feaa8b985b/transformed/ui-tooling-data-release/res
+com.dogfellas.app-navigation-compose-2.7.7-58 /home/choso/.gradle/caches/transforms-3/e87075974a3c87ece9d6d5428e99b5e6/transformed/navigation-compose-2.7.7/res
+com.dogfellas.app-ui-util-release-59 /home/choso/.gradle/caches/transforms-3/ee7c4e91d23cc677af840d1d25ba92b9/transformed/ui-util-release/res
+com.dogfellas.app-emoji2-1.3.0-60 /home/choso/.gradle/caches/transforms-3/f1ae4cfd995ce0427611c01635de8755/transformed/emoji2-1.3.0/res
+com.dogfellas.app-lifecycle-viewmodel-savedstate-2.7.0-61 /home/choso/.gradle/caches/transforms-3/f24f447f0966af99ba37a8e4ff0baab1/transformed/lifecycle-viewmodel-savedstate-2.7.0/res
+com.dogfellas.app-activity-compose-1.8.2-62 /home/choso/.gradle/caches/transforms-3/f2afc6c317a306f3a8d6cd56d0d18fd5/transformed/activity-compose-1.8.2/res
+com.dogfellas.app-play-services-maps-18.2.0-63 /home/choso/.gradle/caches/transforms-3/f2dd148036d3f15bfe95767831552835/transformed/play-services-maps-18.2.0/res
+com.dogfellas.app-core-runtime-2.2.0-64 /home/choso/.gradle/caches/transforms-3/facba64c05b437eafe5d334aca12d76a/transformed/core-runtime-2.2.0/res
+com.dogfellas.app-emoji2-views-helper-1.3.0-65 /home/choso/.gradle/caches/transforms-3/fd4539082d9d199be5eac8dcb82a2e06/transformed/emoji2-views-helper-1.3.0/res
+com.dogfellas.app-lifecycle-runtime-ktx-2.7.0-66 /home/choso/.gradle/caches/transforms-3/fe368e818de68c0742049f0298cef8e5/transformed/lifecycle-runtime-ktx-2.7.0/res
+com.dogfellas.app-pngs-67 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/build/generated/res/pngs/debug
+com.dogfellas.app-res-68 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/build/generated/res/processDebugGoogleServices
+com.dogfellas.app-resValues-69 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/build/generated/res/resValues/debug
+com.dogfellas.app-packageDebugResources-70 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.dogfellas.app-packageDebugResources-71 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.dogfellas.app-merged_res-72 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/build/intermediates/merged_res/debug
+com.dogfellas.app-debug-73 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/src/debug/res
+com.dogfellas.app-main-74 /home/choso/Downloads/DogFellas - copia-20260925T231358Z-1-001/DogFellas - copia/app/src/main/res

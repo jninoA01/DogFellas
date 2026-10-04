@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">DogFellas</string>
+    <string name="tagline">Localiza a tu manada</string>
+
+    <!-- Home Menu -->
+    <string name="menu_atencion_medica">Atención Médica</string>
+    <string name="menu_perdi_mascota">Perdí a mi mascota</string>
+    <string name="menu_encontre_mascota">Encontré una mascota</string>
+    <string name="menu_voluntariado">Voluntariado</string>
+
+    <!-- Atención Médica submenu -->
+    <string name="sub_veterinarios">Veterinarios</string>
+    <string name="sub_emergencias">Emergencias</string>
+    <string name="sub_medicamentos">Medicamentos *</string>
+    <string name="sub_consejos">Consejos Saludables *</string>
+
+    <!-- Common -->
+    <string name="btn_empezar">EMPEZAR</string>
+    <string name="btn_inicio">🏠 Inicio</string>
+    <string name="modal_title">En Construcción</string>
+    <string name="modal_body">Esta funcionalidad estará disponible próximamente.</string>
+    <string name="btn_entendido">Entendido</string>
+</resources>

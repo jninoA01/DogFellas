@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#3D2B1F</color>
+    <color name="ic_launcher_foreground">#C4884A</color>
+    <string name="app_name">DogFellas</string>
+    <string name="btn_empezar">EMPEZAR</string>
+    <string name="btn_entendido">Entendido</string>
+    <string name="btn_inicio">🏠 Inicio</string>
+    <string name="default_web_client_id" translatable="false">572572250627-qfdhpbcsh7a71e03gikn7enkl7datf4t.apps.googleusercontent.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">572572250627</string>
+    <string name="google_api_key" translatable="false">AIzaSyDe725EEf4ONpeRlGvQnryccCQJ_b8VlqY</string>
+    <string name="google_app_id" translatable="false">1:572572250627:android:7054522cb76a5b15e99436</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyDe725EEf4ONpeRlGvQnryccCQJ_b8VlqY</string>
+    <string name="google_storage_bucket" translatable="false">dogfellas-1efdf.firebasestorage.app</string>
+    <string name="menu_atencion_medica">Atención Médica</string>
+    <string name="menu_encontre_mascota">Encontré una mascota</string>
+    <string name="menu_perdi_mascota">Perdí a mi mascota</string>
+    <string name="menu_voluntariado">Voluntariado</string>
+    <string name="modal_body">Esta funcionalidad estará disponible próximamente.</string>
+    <string name="modal_title">En Construcción</string>
+    <string name="project_id" translatable="false">dogfellas-1efdf</string>
+    <string name="sub_consejos">Consejos Saludables *</string>
+    <string name="sub_emergencias">Emergencias</string>
+    <string name="sub_medicamentos">Medicamentos *</string>
+    <string name="sub_veterinarios">Veterinarios</string>
+    <string name="tagline">Localiza a tu manada</string>
+    <style name="Theme.DogFellas" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#3D2B1F</item>
+        <item name="android:navigationBarColor">#3D2B1F</item>
+    </style>
+</resources>

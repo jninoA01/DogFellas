@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "572572250627",
+    "project_id": "dogfellas-1efdf",
+    "storage_bucket": "dogfellas-1efdf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572572250627:android:7054522cb76a5b15e99436",
+        "android_client_info": {
+          "package_name": "com.dogfellas.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "572572250627-qfdhpbcsh7a71e03gikn7enkl7datf4t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDe725EEf4ONpeRlGvQnryccCQJ_b8VlqY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "572572250627-qfdhpbcsh7a71e03gikn7enkl7datf4t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
