@@ -543,6 +543,144 @@ Las credenciales y configuraciones sensibles deben mantenerse fuera del reposito
 
 ---
 
+
+## Configuración para desarrollo colaborativo
+
+### 1. Requisitos
+
+Antes de ejecutar el proyecto, instala:
+
+- Android Studio.
+- JDK 17.
+- Android SDK compatible con la configuración de Gradle del proyecto.
+- Python 3.10 o superior.
+- PostgreSQL.
+- Git.
+
+### 2. Descargar el repositorio
+
+```bash
+git clone https://github.com/jninoA01/DogFellas.git
+cd DogFellas
+```
+
+Abre esta carpeta desde Android Studio y espera a que termine la sincronización de Gradle.
+
+### 3. Configurar Android
+
+Crea un archivo `local.properties` en la raíz del proyecto, junto a `settings.gradle.kts`.
+
+En Linux, si el SDK está en la ubicación habitual:
+
+```bash
+printf 'sdk.dir=%s\n' "$HOME/Android/Sdk" > local.properties
+```
+
+Si Android Studio tiene el SDK en otra ubicación, reemplaza la ruta por la que aparece en sus ajustes.
+
+Comprueba que el archivo `app/google-services.json` esté presente y corresponda al proyecto Firebase autorizado para el equipo.
+
+Para compilar la aplicación en Linux:
+
+```bash
+chmod +x gradlew
+./gradlew assembleDebug
+```
+
+El APK de depuración se genera normalmente en:
+
+`app/build/outputs/apk/debug/app-debug.apk`
+
+### 4. Configurar PostgreSQL
+
+Instala e inicia PostgreSQL y crea una base de datos y un usuario para DogFellas.
+
+La URL de conexión debe tener el formato correspondiente a tu instalación:
+
+```text
+postgresql+psycopg://USUARIO:CONTRASEÑA@localhost:5432/BASE_DE_DATOS
+```
+
+Sustituye los valores de ejemplo por los de tu instalación.
+
+### 5. Configurar Firebase Admin
+
+El backend utiliza un archivo de credenciales de cuenta de servicio de Firebase. Cada desarrollador debe obtenerlo de forma autorizada y guardarlo localmente, sin subirlo a GitHub.
+
+Crea `backend/.env` con esta estructura:
+
+```dotenv
+DATABASE_URL=postgresql+psycopg://USUARIO:CONTRASEÑA@localhost:5432/BASE_DE_DATOS
+FIREBASE_CREDENTIALS_PATH=/ruta/absoluta/a/firebase-service-account.json
+```
+
+Cambia los valores por los datos reales de tu entorno. No compartas contraseñas ni el archivo de cuenta de servicio en el repositorio.
+
+### 6. Instalar e iniciar el backend
+
+Desde la raíz del proyecto:
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Mantén la terminal abierta mientras utilizas la aplicación.
+
+### 7. Comprobar el backend
+
+Abre estas direcciones en el navegador del equipo donde se ejecuta el backend:
+
+- `http://localhost:8000/` — información general.
+- `http://localhost:8000/health` — estado de salud.
+- `http://localhost:8000/docs` — documentación interactiva de la API.
+- `http://localhost:8000/database` — comprobación de la conexión a PostgreSQL.
+
+La aplicación puede utilizar `http://10.0.2.2:8000/` desde un emulador Android estándar para acceder al backend que se ejecuta en el equipo anfitrión.
+
+En un teléfono físico, `10.0.2.2` no apunta al computador. Debes configurar la dirección IP local del equipo, asegurarte de que ambos estén en la misma red y permitir las conexiones al puerto 8000 según las reglas del firewall.
+
+### 8. Trabajo en equipo con Git
+
+Antes de comenzar a trabajar:
+
+```bash
+git pull origin main
+```
+
+Crea una rama para tus cambios:
+
+```bash
+git switch -c feature/nombre-del-cambio
+```
+
+Cuando termines:
+
+```bash
+git add .
+git commit -m "Describe el cambio realizado"
+git push -u origin feature/nombre-del-cambio
+```
+
+Luego abre un Pull Request en GitHub para revisar los cambios antes de incorporarlos a `main`.
+
+### 9. Archivos locales y seguridad
+
+No subas al repositorio:
+
+- Archivos `.env` con contraseñas o credenciales.
+- Archivos JSON de cuentas de servicio de Firebase.
+- Archivos `local.properties`.
+- Entornos virtuales como `.venv`.
+- Contraseñas de bases de datos o claves privadas.
+
+Cada integrante debe configurar sus propios archivos locales y utilizar únicamente los proyectos, credenciales y servicios a los que tenga autorización.
+
+
 # 👨‍💻 Proyecto académico
 
 **DogFellas**
