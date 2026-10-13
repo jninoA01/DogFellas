@@ -104,4 +104,8 @@ sealed class Screen(val route: String) {
 
     object EncontreMascota :
         Screen("encontre_mascota")
+
+    // 🧪 PRUEBA DE CONEXIÓN CON FASTAPI
+    object AuthApiTest :
+        Screen("auth_api_test")
 }

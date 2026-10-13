@@ -364,5 +364,14 @@ fun DogFellasNavGraph(
                 navController = navController
             )
         }
+
+        // =====================================================
+        // 🧪 PRUEBA FASTAPI
+        // =====================================================
+
+        composable(Screen.AuthApiTest.route) {
+
+            AuthApiTestScreen()
+        }
     }
 }

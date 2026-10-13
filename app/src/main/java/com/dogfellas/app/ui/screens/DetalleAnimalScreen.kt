@@ -1,5 +1,6 @@
 package com.dogfellas.app.ui.screens
 
+import repository.AnimalReportadoRepository
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -58,6 +59,10 @@ fun DetalleAnimalScreen(
     navController: NavHostController,
     reporteId: String
 ) {
+
+    val animalRepository = remember {
+        AnimalReportadoRepository()
+    }
 
     var animal by remember {
         mutableStateOf<AnimalReportado?>(null)
@@ -131,41 +136,21 @@ fun DetalleAnimalScreen(
     // CARGAR ANIMAL
     // ============================================================
 
-    LaunchedEffect(reporteId) {
+  LaunchedEffect(reporteId) {
+    cargando = true
+    error = null
 
-        try {
-
-            val documento =
-                FirebaseFirestore
-                    .getInstance()
-                    .collection("animales_reportados")
-                    .document(reporteId)
-                    .get()
-                    .await()
-
-            animal =
-                documento
-                    .toObject(AnimalReportado::class.java)
-                    ?.copy(
-                        id = documento.id
-                    )
-
-            if (animal == null) {
-                error = "No se encontró el reporte."
-            }
-
-        } catch (e: Exception) {
-
-            error =
-                e.message
-                    ?: "No fue posible cargar el reporte."
-
-        } finally {
-
-            cargando = false
+    animalRepository.obtenerAnimalPorId(reporteId)
+        .onSuccess { resultado ->
+            animal = resultado
         }
-    }
+        .onFailure { excepcion ->
+            error = excepcion.message
+                ?: "No fue posible cargar el reporte."
+        }
 
+    cargando = false
+}
 
     // ============================================================
     // CARGAR COMENTARIOS
@@ -204,37 +189,20 @@ fun DetalleAnimalScreen(
     // ============================================================
 
     LaunchedEffect(estadoActualizado) {
-
-        if (estadoActualizado) {
-
-            try {
-
-                val documento =
-                    FirebaseFirestore
-                        .getInstance()
-                        .collection("animales_reportados")
-                        .document(reporteId)
-                        .get()
-                        .await()
-
-                animal =
-                    documento
-                        .toObject(AnimalReportado::class.java)
-                        ?.copy(
-                            id = documento.id
-                        )
-
-            } catch (e: Exception) {
-
-                error =
-                    e.message
-                        ?: "No fue posible actualizar la pantalla."
+    if (estadoActualizado) {
+        animalRepository.obtenerAnimalPorId(reporteId)
+            .onSuccess { resultado ->
+                animal = resultado
+                error = null
+            }
+            .onFailure { excepcion ->
+                error = excepcion.message
+                    ?: "No fue posible actualizar la pantalla."
             }
 
-            historialViewModel.limpiarActualizado()
-        }
+        historialViewModel.limpiarActualizado()
     }
-
+}
 
     // ============================================================
     // PANTALLA

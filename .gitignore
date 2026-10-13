@@ -1,0 +1,43 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio / IntelliJ
+.idea/
+.vscode/
+
+# Logs y temporales
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# Secretos y variables de entorno
+.env
+.env.*
+!.env.example
+**/firebase-service-account.json
+**/*-firebase-adminsdk-*.json
+**/service-account*.json
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
+*.bak

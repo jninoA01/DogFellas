@@ -17,119 +17,293 @@ data class AnimalReporteUI(
 
 class AnimalesCercanosViewModel : ViewModel() {
 
-    private val repository = AnimalesCercanosRepository()
+    private val repository =
+        AnimalesCercanosRepository()
 
-    private val _reportes = MutableStateFlow<List<AnimalReporteUI>>(emptyList())
-    val reportes: StateFlow<List<AnimalReporteUI>> = _reportes.asStateFlow()
+    private val _reportes =
+        MutableStateFlow<List<AnimalReporteUI>>(
+            emptyList()
+        )
 
-    private val _cargando = MutableStateFlow(false)
-    val cargando: StateFlow<Boolean> = _cargando.asStateFlow()
+    val reportes: StateFlow<List<AnimalReporteUI>> =
+        _reportes.asStateFlow()
 
-    private val _mensaje = MutableStateFlow<String?>(null)
-    val mensaje: StateFlow<String?> = _mensaje.asStateFlow()
+    private val _cargando =
+        MutableStateFlow(false)
 
-    private val _ubicacionUsuario = MutableStateFlow<Location?>(null)
-    val ubicacionUsuario: StateFlow<Location?> = _ubicacionUsuario.asStateFlow()
+    val cargando: StateFlow<Boolean> =
+        _cargando.asStateFlow()
 
-    fun actualizarUbicacion(location: Location?) {
-        _ubicacionUsuario.value = location
+    private val _mensaje =
+        MutableStateFlow<String?>(null)
 
-        recalcularDistancias()
+    val mensaje: StateFlow<String?> =
+        _mensaje.asStateFlow()
 
-        // La cercanía será el orden inicial
-        ordenarPorCercania()
+    private val _ubicacionUsuario =
+        MutableStateFlow<Location?>(null)
+
+    val ubicacionUsuario: StateFlow<Location?> =
+        _ubicacionUsuario.asStateFlow()
+
+
+    // =====================================================
+    // ACTUALIZAR UBICACIÓN
+    // =====================================================
+
+    fun actualizarUbicacion(
+        location: Location?
+    ) {
+
+        _ubicacionUsuario.value =
+            location
+
+        if (location != null) {
+
+            cargarAnimalesCercanos(
+                location
+            )
+
+        } else {
+
+            recalcularDistancias()
+            ordenarPorCercania()
+        }
     }
 
+
+    // =====================================================
+    // CARGAR REPORTES
+    // =====================================================
+
     fun cargarReportes() {
+
         viewModelScope.launch {
+
             _cargando.value = true
             _mensaje.value = null
 
-            val resultado = repository.obtenerReportes()
+            val resultado =
+                repository.obtenerReportes()
 
             resultado
                 .onSuccess { lista ->
 
-                    _reportes.value = lista.map { animal ->
-                        AnimalReporteUI(
-                            animal = animal,
-                            distanciaMetros = calcularDistancia(animal)
-                        )
-                    }
+                    _reportes.value =
+                        lista.map { animal ->
 
-                    // Orden inicial por cercanía
+                            AnimalReporteUI(
+                                animal =
+                                    animal,
+
+                                distanciaMetros =
+                                    calcularDistancia(
+                                        animal
+                                    )
+                            )
+                        }
+
                     ordenarPorCercania()
                 }
+
                 .onFailure { error ->
+
                     _mensaje.value =
-                        error.message ?: "No fue posible cargar los reportes."
+                        error.message
+                            ?: "No fue posible cargar los reportes."
                 }
 
             _cargando.value = false
         }
     }
 
-    private fun calcularDistancia(animal: AnimalReportado): Float? {
 
-        val usuario = _ubicacionUsuario.value
-        val ubicacionAnimal = animal.ubicacion
+    // =====================================================
+    // CARGAR ANIMALES CERCANOS DESDE FASTAPI
+    // =====================================================
 
-        if (usuario == null || ubicacionAnimal == null) {
+    private fun cargarAnimalesCercanos(
+        location: Location
+    ) {
+
+        viewModelScope.launch {
+
+            _cargando.value = true
+            _mensaje.value = null
+
+            val resultado =
+                repository.obtenerAnimalesCercanos(
+
+                    latitud =
+                        location.latitude,
+
+                    longitud =
+                        location.longitude,
+
+                    radioKm =
+                        5.0
+                )
+
+            resultado
+                .onSuccess { lista ->
+
+                    _reportes.value =
+                        lista.map { animal ->
+
+                            AnimalReporteUI(
+                                animal =
+                                    animal,
+
+                                distanciaMetros =
+                                    calcularDistancia(
+                                        animal
+                                    )
+                            )
+                        }
+
+                    ordenarPorCercania()
+                }
+
+                .onFailure { error ->
+
+                    _mensaje.value =
+                        error.message
+                            ?: "No fue posible cargar los animales cercanos."
+                }
+
+            _cargando.value = false
+        }
+    }
+
+
+    // =====================================================
+    // CALCULAR DISTANCIA LOCAL
+    // =====================================================
+
+    private fun calcularDistancia(
+        animal: AnimalReportado
+    ): Float? {
+
+        val usuario =
+            _ubicacionUsuario.value
+
+        val ubicacionAnimal =
+            animal.ubicacion
+
+        if (
+            usuario == null ||
+            ubicacionAnimal == null
+        ) {
             return null
         }
 
-        val resultado = FloatArray(1)
+        val resultado =
+            FloatArray(1)
 
         Location.distanceBetween(
+
             usuario.latitude,
             usuario.longitude,
+
             ubicacionAnimal.latitude,
             ubicacionAnimal.longitude,
+
             resultado
         )
 
         return resultado[0]
     }
 
+
+    // =====================================================
+    // RECALCULAR DISTANCIAS
+    // =====================================================
+
     private fun recalcularDistancias() {
 
-        _reportes.value = _reportes.value.map { item ->
-            item.copy(
-                distanciaMetros = calcularDistancia(item.animal)
-            )
-        }
+        _reportes.value =
+            _reportes.value.map { item ->
+
+                item.copy(
+                    distanciaMetros =
+                        calcularDistancia(
+                            item.animal
+                        )
+                )
+            }
     }
+
+
+    // =====================================================
+    // ORDENAR POR CERCANÍA
+    // =====================================================
 
     fun ordenarPorCercania() {
 
-        _reportes.value = _reportes.value.sortedWith(
-            compareBy(
-                { it.distanciaMetros == null },
-                { it.distanciaMetros ?: Float.MAX_VALUE }
+        _reportes.value =
+            _reportes.value.sortedWith(
+
+                compareBy(
+
+                    {
+                        it.distanciaMetros == null
+                    },
+
+                    {
+                        it.distanciaMetros
+                            ?: Float.MAX_VALUE
+                    }
+                )
             )
-        )
     }
+
+
+    // =====================================================
+    // ORDENAR POR URGENCIA
+    // =====================================================
 
     fun ordenarPorUrgencia() {
 
-        val prioridad = mapOf(
-            "Alta" to 0,
-            "Media" to 1,
-            "Baja" to 2
-        )
+        val prioridad =
+            mapOf(
 
-        _reportes.value = _reportes.value.sortedWith(
-            compareBy(
-                { prioridad[it.animal.urgencia] ?: 3 },
-                { it.distanciaMetros ?: Float.MAX_VALUE }
+                "Alta" to 0,
+
+                "Media" to 1,
+
+                "Baja" to 2
             )
-        )
+
+        _reportes.value =
+            _reportes.value.sortedWith(
+
+                compareBy(
+
+                    {
+                        prioridad[
+                            it.animal.urgencia
+                        ] ?: 3
+                    },
+
+                    {
+                        it.distanciaMetros
+                            ?: Float.MAX_VALUE
+                    }
+                )
+            )
     }
+
+
+    // =====================================================
+    // ORDENAR POR FECHA
+    // =====================================================
 
     fun ordenarPorFecha() {
 
-        _reportes.value = _reportes.value.sortedByDescending {
-            it.animal.fechaReporte
-        }
+        _reportes.value =
+            _reportes.value.sortedByDescending {
+
+                it.animal.fechaReporte
+            }
     }
 }

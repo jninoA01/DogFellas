@@ -1,61 +1,91 @@
 package repository
 
+import com.dogfellas.app.data.api.ApiClient
+import com.dogfellas.app.data.api.CrearHistorialEstadoRequest
 import com.dogfellas.app.model.AnimalReportado
 import com.dogfellas.app.model.EstadoAnimal
 import com.dogfellas.app.model.HistorialEstadoAnimal
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
+import java.time.Instant
+import java.time.OffsetDateTime
 
 class HistorialAnimalRepository {
 
-    private val db = FirebaseFirestore.getInstance()
-
-    private fun historialCollection(
-        reporteId: String
-    ) =
-        db.collection("animales_reportados")
-            .document(reporteId)
-            .collection("historial_estados")
+    private val api = ApiClient.animalReportadoApi
+    private val auth = FirebaseAuth.getInstance()
 
     /**
-     * Obtiene el historial real del animal.
+     * Obtiene el token de Firebase Authentication.
+     */
+    private suspend fun obtenerToken(): String {
+        val usuario = auth.currentUser
+            ?: throw Exception("Debes iniciar sesión.")
+
+        val resultado = usuario.getIdToken(false).await()
+
+        return resultado.token
+            ?: throw Exception("No fue posible obtener el token de autenticación.")
+    }
+
+    /**
+     * Convierte la fecha ISO del backend a milisegundos.
+     */
+    private fun convertirFecha(fecha: String): Long {
+        return try {
+            Instant.parse(fecha).toEpochMilli()
+        } catch (_: Exception) {
+            try {
+                OffsetDateTime.parse(fecha).toInstant().toEpochMilli()
+            } catch (_: Exception) {
+                System.currentTimeMillis()
+            }
+        }
+    }
+
+    /**
+     * Consulta el historial almacenado en PostgreSQL.
      */
     suspend fun obtenerHistorial(
         reporteId: String
     ): Result<List<HistorialEstadoAnimal>> {
-
         return try {
+            val animalId = reporteId.toIntOrNull()
+                ?: throw Exception("El identificador del animal no es válido.")
 
-            val snapshot = historialCollection(reporteId)
-                .orderBy("fecha")
-                .get()
-                .await()
+            val respuesta = api.obtenerHistorial(animalId)
 
-            val historial =
-                snapshot.documents.mapNotNull { documento ->
+            if (!respuesta.isSuccessful) {
+                throw Exception(
+                    respuesta.errorBody()?.string()
+                        ?: "No fue posible consultar el historial."
+                )
+            }
 
-                    documento
-                        .toObject(HistorialEstadoAnimal::class.java)
-                        ?.copy(
-                            id = documento.id
-                        )
+            val historial = respuesta.body()
+                ?.map { registro ->
+                    HistorialEstadoAnimal(
+                        id = registro.id.toString(),
+                        estado = registro.estado,
+                        fecha = convertirFecha(registro.fecha),
+                        usuarioId = registro.usuario_id?.toString() ?: "",
+                        observacion = registro.observacion
+                    )
                 }
+                ?: emptyList()
 
             Result.success(historial)
-
         } catch (e: Exception) {
-
             Result.failure(
                 Exception(
-                    e.message
-                        ?: "No fue posible cargar el historial."
+                    e.message ?: "No fue posible cargar el historial."
                 )
             )
         }
     }
 
     /**
-     * Registra un nuevo estado en el historial.
+     * Actualiza el estado y registra el historial en PostgreSQL.
      */
     suspend fun registrarCambioEstado(
         reporteId: String,
@@ -63,92 +93,74 @@ class HistorialAnimalRepository {
         usuarioId: String,
         observacion: String
     ): Result<Unit> {
-
         return try {
+            val animalId = reporteId.toIntOrNull()
+                ?: throw Exception("El identificador del animal no es válido.")
 
-            val ahora = System.currentTimeMillis()
+            val token = obtenerToken()
 
-            val historial = hashMapOf(
-                "estado" to nuevoEstado,
-                "fecha" to ahora,
-                "usuarioId" to usuarioId,
-                "observacion" to observacion
+            val respuesta = api.registrarCambioEstado(
+                animalId = animalId,
+                authorization = "Bearer $token",
+                datos = CrearHistorialEstadoRequest(
+                    estado = nuevoEstado,
+                    observacion = observacion
+                )
             )
 
-            historialCollection(reporteId)
-                .add(historial)
-                .await()
-
-            db.collection("animales_reportados")
-                .document(reporteId)
-                .update(
-                    "estado",
-                    nuevoEstado
+            if (!respuesta.isSuccessful) {
+                throw Exception(
+                    respuesta.errorBody()?.string()
+                        ?: "No fue posible actualizar el estado."
                 )
-                .await()
+            }
 
             Result.success(Unit)
-
         } catch (e: Exception) {
-
             Result.failure(
                 Exception(
-                    e.message
-                        ?: "No fue posible actualizar el estado."
+                    e.message ?: "No fue posible actualizar el estado."
                 )
             )
         }
     }
 
     /**
-     * Crea el primer registro del historial si el animal
-     * todavía no tiene historial.
+     * Crea el registro inicial en PostgreSQL si no existe historial.
      */
     suspend fun crearEstadoInicialSiEsNecesario(
         animal: AnimalReportado
     ): Result<Unit> {
-
         return try {
+            val animalId = animal.id.toIntOrNull()
+                ?: throw Exception("El identificador del animal no es válido.")
 
-            val historialExistente =
-                historialCollection(animal.id)
-                    .limit(1)
-                    .get()
-                    .await()
+            val respuesta = api.obtenerHistorial(animalId)
 
-            if (!historialExistente.isEmpty) {
+            if (!respuesta.isSuccessful) {
+                throw Exception(
+                    respuesta.errorBody()?.string()
+                        ?: "No fue posible consultar el historial inicial."
+                )
+            }
+
+            val historial = respuesta.body() ?: emptyList()
+
+            if (historial.isNotEmpty()) {
                 return Result.success(Unit)
             }
 
-            val usuarioId =
-                animal.usuarioReporta
+            val estadoInicial = animal.estado.ifBlank {
+                EstadoAnimal.REPORTADO.valor
+            }
 
-            val estado =
-                if (animal.estado.isBlank()) {
-                    EstadoAnimal.REPORTADO.valor
-                } else {
-                    animal.estado
-                }
-
-            val registroInicial = hashMapOf(
-                "estado" to estado,
-                "fecha" to if (animal.fechaReporte > 0L) {
-                    animal.fechaReporte
-                } else {
-                    System.currentTimeMillis()
-                },
-                "usuarioId" to usuarioId,
-                "observacion" to "Reporte inicial del animal."
+            registrarCambioEstado(
+                reporteId = animal.id,
+                nuevoEstado = estadoInicial,
+                usuarioId = animal.usuarioReporta,
+                observacion = "Reporte inicial del animal."
             )
-
-            historialCollection(animal.id)
-                .add(registroInicial)
-                .await()
-
-            Result.success(Unit)
-
         } catch (e: Exception) {
-
             Result.failure(
                 Exception(
                     e.message

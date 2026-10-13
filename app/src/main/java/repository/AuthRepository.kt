@@ -1,27 +1,60 @@
 package com.dogfellas.app.data
 
+import com.dogfellas.app.data.api.ApiClient
+import com.dogfellas.app.data.api.SincronizarUsuarioRequest
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AuthRepository {
 
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val auth: FirebaseAuth =
+        FirebaseAuth.getInstance()
+
+    private val repositoryScope =
+        CoroutineScope(
+            SupervisorJob() + Dispatchers.IO
+        )
+
+    // =====================================================
+    // LOGIN
+    // =====================================================
 
     fun login(
         email: String,
         password: String,
         onResult: (Boolean, String?) -> Unit
     ) {
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener {
-                if (it.isSuccessful) {
-                    onResult(true, null)
+
+        auth.signInWithEmailAndPassword(
+            email,
+            password
+        )
+            .addOnCompleteListener { task ->
+
+                if (task.isSuccessful) {
+
+                    onResult(
+                        true,
+                        null
+                    )
+
                 } else {
-                    onResult(false, it.exception?.message)
+
+                    onResult(
+                        false,
+                        task.exception?.message
+                    )
                 }
             }
     }
+
+    // =====================================================
+    // REGISTRO
+    // =====================================================
 
     fun register(
         nombre: String,
@@ -30,88 +63,255 @@ class AuthRepository {
         onResult: (Boolean, String?) -> Unit
     ) {
 
-        auth.createUserWithEmailAndPassword(email, password)
+        // 1. Crear usuario en Firebase Authentication
+
+        auth.createUserWithEmailAndPassword(
+            email,
+            password
+        )
             .addOnCompleteListener { task ->
 
                 if (!task.isSuccessful) {
-                    onResult(false, task.exception?.message)
+
+                    onResult(
+                        false,
+                        task.exception?.message
+                            ?: "No fue posible crear la cuenta."
+                    )
+
                     return@addOnCompleteListener
                 }
 
-                val usuario = auth.currentUser
+                // 2. Obtener usuario creado
+
+                val usuario =
+                    auth.currentUser
 
                 if (usuario == null) {
-                    onResult(false, "No fue posible obtener el usuario creado.")
+
+                    onResult(
+                        false,
+                        "No fue posible obtener el usuario creado."
+                    )
+
                     return@addOnCompleteListener
                 }
 
-                val uid = usuario.uid
+                // 3. Obtener token de Firebase
 
-                /*
-                 * Documento privado del usuario.
-                 * Aquí mantenemos nombre + email.
-                 */
-                val datosUsuario = hashMapOf(
-                    "nombre" to nombre,
-                    "email" to email
-                )
+                usuario.getIdToken(true)
+                    .addOnCompleteListener { tokenTask ->
 
-                /*
-                 * Perfil público.
-                 * Solo contiene el nombre.
-                 */
-                val perfilPublico = hashMapOf(
-                    "nombre" to nombre
-                )
+                        if (!tokenTask.isSuccessful) {
 
-                db.collection("usuarios")
-                    .document(uid)
-                    .set(datosUsuario)
-                    .addOnSuccessListener {
+                            onResult(
+                                false,
+                                tokenTask.exception?.message
+                                    ?: "No fue posible obtener el token de Firebase."
+                            )
 
-                        db.collection("perfiles_publicos")
-                            .document(uid)
-                            .set(perfilPublico)
-                            .addOnSuccessListener {
+                            return@addOnCompleteListener
+                        }
 
-                                onResult(true, null)
+                        val token =
+                            tokenTask.result?.token
 
+                        if (token.isNullOrBlank()) {
+
+                            onResult(
+                                false,
+                                "Firebase no devolvió un ID Token válido."
+                            )
+
+                            return@addOnCompleteListener
+                        }
+
+                        // 4. Enviar información a FastAPI
+
+                        repositoryScope.launch {
+
+                            try {
+
+                                val respuesta =
+                                    ApiClient.authApi
+                                        .sincronizarUsuario(
+                                            authorization =
+                                                "Bearer $token",
+
+                                            datos =
+                                                SincronizarUsuarioRequest(
+                                                    nombre = nombre.trim(),
+                                                    telefono = null
+                                                )
+                                        )
+
+                                // 5. Procesar respuesta
+
+                                if (respuesta.isSuccessful) {
+
+                                    val usuarioPostgres =
+                                        respuesta.body()
+
+                                    if (usuarioPostgres == null) {
+
+                                        withContext(
+                                            Dispatchers.Main
+                                        ) {
+                                            onResult(
+                                                false,
+                                                "FastAPI respondió correctamente, pero no devolvió los datos del usuario."
+                                            )
+                                        }
+
+                                        return@launch
+                                    }
+
+                                    // Registro completo
+
+                                    withContext(
+                                        Dispatchers.Main
+                                    ) {
+                                        onResult(
+                                            true,
+                                            null
+                                        )
+                                    }
+
+                                } else {
+
+                                    val error =
+                                        respuesta
+                                            .errorBody()
+                                            ?.string()
+
+                                    withContext(
+                                        Dispatchers.Main
+                                    ) {
+
+                                        onResult(
+                                            false,
+                                            "El usuario fue creado en Firebase, pero no pudo sincronizarse con PostgreSQL.\n\n" +
+                                                    "Código FastAPI: ${respuesta.code()}\n" +
+                                                    "Detalle: ${error ?: "Sin detalle"}"
+                                        )
+                                    }
+                                }
+
+                            } catch (e: Exception) {
+
+                                withContext(
+                                    Dispatchers.Main
+                                ) {
+
+                                    onResult(
+                                        false,
+                                        "El usuario fue creado en Firebase, pero ocurrió un error al conectar con FastAPI.\n\n" +
+                                                "${e.message}"
+                                    )
+                                }
                             }
-                            .addOnFailureListener { error ->
-
-                                onResult(
-                                    false,
-                                    error.message
-                                        ?: "No fue posible crear el perfil público."
-                                )
-                            }
-                    }
-                    .addOnFailureListener { error ->
-
-                        onResult(
-                            false,
-                            error.message
-                                ?: "No fue posible guardar los datos del usuario."
-                        )
+                        }
                     }
             }
     }
+
+    // =====================================================
+    // RECUPERAR CONTRASEÑA
+    // =====================================================
 
     fun recoverPassword(
         email: String,
         onResult: (Boolean, String?) -> Unit
     ) {
-        auth.sendPasswordResetEmail(email)
-            .addOnCompleteListener {
-                if (it.isSuccessful) {
-                    onResult(true, null)
+
+        auth.sendPasswordResetEmail(
+            email
+        )
+            .addOnCompleteListener { task ->
+
+                if (task.isSuccessful) {
+
+                    onResult(
+                        true,
+                        null
+                    )
+
                 } else {
-                    onResult(false, it.exception?.message)
+
+                    onResult(
+                        false,
+                        task.exception?.message
+                    )
                 }
             }
     }
 
-    fun getCurrentUser() = auth.currentUser
+    // =====================================================
+    // OBTENER FIREBASE ID TOKEN
+    // =====================================================
 
-    fun logout() = auth.signOut()
+    fun getFirebaseIdToken(
+        onResult: (String?, String?) -> Unit
+    ) {
+
+        val usuario =
+            auth.currentUser
+
+        if (usuario == null) {
+
+            onResult(
+                null,
+                "No hay ningún usuario autenticado."
+            )
+
+            return
+        }
+
+        usuario.getIdToken(true)
+            .addOnCompleteListener { task ->
+
+                if (task.isSuccessful) {
+
+                    val token =
+                        task.result?.token
+
+                    if (token != null) {
+
+                        onResult(
+                            token,
+                            null
+                        )
+
+                    } else {
+
+                        onResult(
+                            null,
+                            "Firebase no devolvió el ID Token."
+                        )
+                    }
+
+                } else {
+
+                    onResult(
+                        null,
+                        task.exception?.message
+                            ?: "No fue posible obtener el ID Token."
+                    )
+                }
+            }
+    }
+
+    // =====================================================
+    // USUARIO ACTUAL
+    // =====================================================
+
+    fun getCurrentUser() =
+        auth.currentUser
+
+    // =====================================================
+    // CERRAR SESIÓN
+    // =====================================================
+
+    fun logout() =
+        auth.signOut()
 }
