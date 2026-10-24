@@ -64,3 +64,16 @@ class SolicitudAdopcionResponse(
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+ESTADOS_SOLICITUD = (
+    "PENDIENTE",
+    "EN_REVISION",
+    "APROBADA",
+    "RECHAZADA"
+)
+
+
+class SolicitudAdopcionEstadoUpdate(BaseModel):
+
+    estado: str
