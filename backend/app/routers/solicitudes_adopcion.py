@@ -9,7 +9,9 @@ from app.models.solicitud_adopcion import SolicitudAdopcion
 
 from app.schemas.solicitud_adopcion import (
     SolicitudAdopcionCreate,
-    SolicitudAdopcionResponse
+    SolicitudAdopcionResponse,
+    SolicitudAdopcionEstadoUpdate,
+    ESTADOS_SOLICITUD
 )
 
 from app.services.firebase_auth import obtener_firebase_uid
@@ -243,6 +245,158 @@ def obtener_solicitud_existente(
         )
         .first()
     )
+
+    return solicitud
+
+
+# =========================================================
+# SOLICITUDES RECIBIDAS (PUBLICADOR DEL ANIMAL)
+# =========================================================
+
+@router.get(
+    "/recibidas",
+    response_model=list[SolicitudAdopcionResponse]
+)
+def obtener_solicitudes_recibidas(
+    reporte_id: int | None = None,
+    firebase_uid: str = Depends(
+        obtener_firebase_uid
+    ),
+    db: Session = Depends(get_db)
+):
+
+    usuario = (
+        db.query(Usuario)
+        .filter(
+            Usuario.firebase_uid == firebase_uid
+        )
+        .first()
+    )
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "El usuario autenticado "
+                "no existe en PostgreSQL"
+            )
+        )
+
+    consulta = (
+        db.query(SolicitudAdopcion)
+        .join(
+            AnimalReportado,
+            AnimalReportado.id
+            == SolicitudAdopcion.reporte_id
+        )
+        .filter(
+            AnimalReportado.usuario_id
+            == usuario.id
+        )
+    )
+
+    if reporte_id is not None:
+        consulta = consulta.filter(
+            SolicitudAdopcion.reporte_id
+            == reporte_id
+        )
+
+    return (
+        consulta
+        .order_by(
+            SolicitudAdopcion.fecha_solicitud.desc()
+        )
+        .all()
+    )
+
+
+# =========================================================
+# CAMBIAR ESTADO DE UNA SOLICITUD
+# =========================================================
+
+@router.patch(
+    "/{solicitud_id}/estado",
+    response_model=SolicitudAdopcionResponse
+)
+def actualizar_estado_solicitud(
+    solicitud_id: int,
+    datos: SolicitudAdopcionEstadoUpdate,
+    firebase_uid: str = Depends(
+        obtener_firebase_uid
+    ),
+    db: Session = Depends(get_db)
+):
+
+    nuevo_estado = datos.estado.strip().upper()
+
+    if nuevo_estado not in ESTADOS_SOLICITUD:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Estado no válido. Use: "
+                + ", ".join(ESTADOS_SOLICITUD)
+            )
+        )
+
+    usuario = (
+        db.query(Usuario)
+        .filter(
+            Usuario.firebase_uid == firebase_uid
+        )
+        .first()
+    )
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "El usuario autenticado "
+                "no existe en PostgreSQL"
+            )
+        )
+
+    solicitud = (
+        db.query(SolicitudAdopcion)
+        .filter(
+            SolicitudAdopcion.id
+            == solicitud_id
+        )
+        .first()
+    )
+
+    if not solicitud:
+        raise HTTPException(
+            status_code=404,
+            detail="Solicitud no encontrada"
+        )
+
+    animal = (
+        db.query(AnimalReportado)
+        .filter(
+            AnimalReportado.id
+            == solicitud.reporte_id
+        )
+        .first()
+    )
+
+    # Solo quien publicó el animal puede gestionar solicitudes
+    if not animal or animal.usuario_id != usuario.id:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Solo quien publicó el animal "
+                "puede gestionar sus solicitudes"
+            )
+        )
+
+    solicitud.estado = nuevo_estado
+
+    # Al aprobar, el animal pasa a ADOPTADO
+    if nuevo_estado == "APROBADA":
+        animal.estado = "ADOPTADO"
+
+    db.commit()
+    db.refresh(solicitud)
 
     return solicitud
 

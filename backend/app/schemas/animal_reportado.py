@@ -23,6 +23,16 @@ class AnimalReportadoBase(BaseModel):
 
     longitud: float | None = None
 
+    nombre_provisional: str | None = None
+
+    edad: str | None = None
+
+    sexo: str | None = None
+
+    salud: str | None = None
+
+    caracteristicas: str | None = None
+
     estado: str = "REPORTADO"
 
 
@@ -58,6 +68,16 @@ class AnimalReportadoUpdate(BaseModel):
     latitud: float | None = None
 
     longitud: float | None = None
+
+    nombre_provisional: str | None = None
+
+    edad: str | None = None
+
+    sexo: str | None = None
+
+    salud: str | None = None
+
+    caracteristicas: str | None = None
 
     estado: str | None = None
 

@@ -60,6 +60,35 @@ class AnimalReportado(Base):
     )
 
     # =====================================================
+    # DATOS DE PUBLICACIÓN EN ADOPCIÓN (SPRINT 4)
+    # =====================================================
+
+    nombre_provisional = Column(
+        String(100),
+        nullable=True
+    )
+
+    edad = Column(
+        String(50),
+        nullable=True
+    )
+
+    sexo = Column(
+        String(20),
+        nullable=True
+    )
+
+    salud = Column(
+        Text,
+        nullable=True
+    )
+
+    caracteristicas = Column(
+        Text,
+        nullable=True
+    )
+
+    # =====================================================
     # RELACIÓN CON USUARIO
     # =====================================================
 

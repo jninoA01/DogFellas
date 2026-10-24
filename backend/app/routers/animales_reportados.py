@@ -58,6 +58,11 @@ def crear_animal_reportado(
         foto_uri=datos.foto_uri,
         latitud=datos.latitud,
         longitud=datos.longitud,
+        nombre_provisional=datos.nombre_provisional,
+        edad=datos.edad,
+        sexo=datos.sexo,
+        salud=datos.salud,
+        caracteristicas=datos.caracteristicas,
         usuario_id=usuario.id,
         usuario_reporta=usuario.firebase_uid,
         estado=datos.estado
