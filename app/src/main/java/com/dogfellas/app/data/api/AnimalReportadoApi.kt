@@ -1,3 +1,4 @@
+
 package com.dogfellas.app.data.api
 
 import retrofit2.Response
@@ -24,8 +25,7 @@ data class CrearAnimalReportadoRequest(
 )
 
 // =========================================================
-// ACTUALIZAR ANIMAL
-// Se conserva para compatibilidad con el código existente.
+// ACTUALIZAR INFORMACIÓN DEL ANIMAL
 // =========================================================
 
 data class ActualizarAnimalReportadoRequest(
@@ -79,20 +79,35 @@ data class HistorialEstadoApiResponse(
 
 interface AnimalReportadoApi {
 
+    // -----------------------------------------------------
+    // CREAR REPORTE
+    // Requiere autenticación Firebase.
+    // -----------------------------------------------------
+
     @POST("animales-reportados/")
     suspend fun crearAnimalReportado(
         @Header("Authorization") authorization: String,
         @Body datos: CrearAnimalReportadoRequest
     ): Response<AnimalReportadoApiResponse>
 
+    // -----------------------------------------------------
+    // CONSULTAR REPORTE
+    // -----------------------------------------------------
+
     @GET("animales-reportados/{animal_id}")
     suspend fun obtenerAnimalPorId(
         @Path("animal_id") animalId: Int
     ): Response<AnimalReportadoApiResponse>
 
+    // -----------------------------------------------------
+    // ACTUALIZAR REPORTE
+    // Requiere autenticación Firebase.
+    // -----------------------------------------------------
+
     @PUT("animales-reportados/{animal_id}")
     suspend fun actualizarAnimalReportado(
         @Path("animal_id") animalId: Int,
+        @Header("Authorization") authorization: String,
         @Body datos: ActualizarAnimalReportadoRequest
     ): Response<AnimalReportadoApiResponse>
 
@@ -106,8 +121,9 @@ interface AnimalReportadoApi {
     ): Response<List<HistorialEstadoApiResponse>>
 
     // -----------------------------------------------------
-    // REGISTRAR CAMBIO DE ESTADO EN POSTGRESQL
-    // Requiere el token de Firebase Authentication.
+    // REGISTRAR CAMBIO DE ESTADO
+    // Requiere autenticación Firebase y validación
+    // de propiedad del reporte en el backend.
     // -----------------------------------------------------
 
     @POST("animales-reportados/{animal_id}/historial")

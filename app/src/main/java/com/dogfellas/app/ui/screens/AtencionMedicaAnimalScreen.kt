@@ -32,6 +32,8 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Healing
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material.icons.rounded.Warning
@@ -42,6 +44,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -1884,17 +1888,30 @@ private fun MedicalDialog(
 // HISTORIAL
 // =============================================================
 
+
 @Composable
 private fun HistorialDialog(
     reporteId: String,
     onDismiss: () -> Unit,
     onGuardar: (HistorialMedicoAnimal) -> Unit
 ) {
-
     var veterinario by remember { mutableStateOf("") }
     var diagnostico by remember { mutableStateOf("") }
     var tratamiento by remember { mutableStateOf("") }
     var observaciones by remember { mutableStateOf("") }
+
+    val tiposAtencion = listOf(
+        "EVALUACION" to "Evaluación",
+        "TRATAMIENTO" to "Tratamiento",
+        "SEGUIMIENTO" to "Seguimiento"
+    )
+
+    var tipoSeleccionado by remember {
+        mutableStateOf("EVALUACION")
+    }
+    var mostrarTipos by remember {
+        mutableStateOf(false)
+    }
 
     MedicalDialog(
         title = "Registrar atención",
@@ -1902,14 +1919,13 @@ private fun HistorialDialog(
         icon = Icons.Rounded.Healing,
         onDismiss = onDismiss,
         onGuardar = {
-
             onGuardar(
                 HistorialMedicoAnimal(
                     reporteId = reporteId,
                     usuarioId = "",
                     veterinario = veterinario,
                     fecha = System.currentTimeMillis(),
-                    tipo = "EVALUACION",
+                    tipo = tipoSeleccionado,
                     diagnostico = diagnostico,
                     tratamiento = tratamiento,
                     observaciones = observaciones
@@ -1917,6 +1933,57 @@ private fun HistorialDialog(
             )
         }
     ) {
+        Text(
+            text = "Tipo de atención",
+            color = BrownDark
+        )
+
+        Box {
+            OutlinedTextField(
+                value = tiposAtencion.first {
+                    it.first == tipoSeleccionado
+                }.second,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Selecciona una opción") },
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            mostrarTipos = !mostrarTipos
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (mostrarTipos) {
+                                Icons.Rounded.KeyboardArrowUp
+                            } else {
+                                Icons.Rounded.KeyboardArrowDown
+                            },
+                            contentDescription = "Mostrar tipos de atención"
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            DropdownMenu(
+                expanded = mostrarTipos,
+                onDismissRequest = {
+                    mostrarTipos = false
+                }
+            ) {
+                tiposAtencion.forEach { (valor, etiqueta) ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(etiqueta)
+                        },
+                        onClick = {
+                            tipoSeleccionado = valor
+                            mostrarTipos = false
+                        }
+                    )
+                }
+            }
+        }
 
         MedicalField(
             value = veterinario,

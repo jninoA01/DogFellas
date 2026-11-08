@@ -4,9 +4,9 @@ package repository
 import android.content.Context
 import android.net.Uri
 import com.dogfellas.app.data.AuthRepository
-import com.dogfellas.app.data.api.ActualizarAnimalReportadoRequest
 import com.dogfellas.app.data.api.ApiClient
 import com.dogfellas.app.data.api.CrearAnimalReportadoRequest
+import com.dogfellas.app.data.api.CrearHistorialEstadoRequest
 import com.dogfellas.app.model.AnimalReportado
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.Dispatchers
@@ -56,8 +56,8 @@ class AnimalReportadoRepository {
                 return Result.failure(
                     Exception(
                         "No se pudo consultar el reporte. " +
-                            "Código: ${respuesta.code()}\n" +
-                            (respuesta.errorBody()?.string() ?: "")
+                                "Código: ${respuesta.code()}\n" +
+                                (respuesta.errorBody()?.string() ?: "")
                     )
                 )
             }
@@ -94,6 +94,7 @@ class AnimalReportadoRepository {
                     fechaReporte = fechaMillis
                 )
             )
+
         } catch (e: Exception) {
             Result.failure(
                 Exception(
@@ -105,7 +106,7 @@ class AnimalReportadoRepository {
     }
 
     // =====================================================
-    // ACTUALIZAR EL ESTADO EN POSTGRESQL
+    // ACTUALIZAR ESTADO Y REGISTRARLO EN EL HISTORIAL
     // =====================================================
 
     suspend fun actualizarEstadoAnimal(
@@ -118,28 +119,54 @@ class AnimalReportadoRepository {
                     Exception("El identificador del reporte no es numérico.")
                 )
 
-            val respuesta = withContext(Dispatchers.IO) {
-                ApiClient.animalReportadoApi.actualizarAnimalReportado(
+            // Obtener token de Firebase
+            val token = obtenerToken()
+                ?: return Result.failure(
+                    Exception("No fue posible obtener el token de Firebase.")
+                )
+
+            val authorization = "Bearer $token"
+
+            // Registrar el cambio de estado en PostgreSQL
+            val respuestaHistorial = withContext(Dispatchers.IO) {
+                ApiClient.animalReportadoApi.registrarCambioEstado(
                     animalId = id,
-                    datos = ActualizarAnimalReportadoRequest(
-                        estado = nuevoEstado
+                    authorization = authorization,
+                    datos = CrearHistorialEstadoRequest(
+                        estado = nuevoEstado,
+                        observacion = "Cambio de estado desde DogFellas"
                     )
                 )
             }
 
-            if (!respuesta.isSuccessful) {
-                val detalle = respuesta.errorBody()?.string()
+            if (!respuestaHistorial.isSuccessful) {
+                val detalle = respuestaHistorial.errorBody()?.string()
 
                 return Result.failure(
                     Exception(
-                        "No se pudo actualizar el estado. " +
-                            "Código: ${respuesta.code()}\n" +
-                            (detalle ?: "")
+                        "No se pudo registrar el cambio de estado. " +
+                                "Código: ${respuestaHistorial.code()}\n" +
+                                (detalle ?: "")
                     )
                 )
             }
 
-            val datos = respuesta.body()
+            // Consultar el reporte con su nuevo estado
+            val respuestaAnimal = withContext(Dispatchers.IO) {
+                ApiClient.animalReportadoApi.obtenerAnimalPorId(id)
+            }
+
+            if (!respuestaAnimal.isSuccessful) {
+                return Result.failure(
+                    Exception(
+                        "El estado se registró, pero no se pudo consultar " +
+                                "el animal actualizado. Código: " +
+                                respuestaAnimal.code()
+                    )
+                )
+            }
+
+            val datos = respuestaAnimal.body()
                 ?: return Result.failure(
                     Exception("La API no devolvió el animal actualizado.")
                 )
@@ -171,6 +198,7 @@ class AnimalReportadoRepository {
                     fechaReporte = fechaMillis
                 )
             )
+
         } catch (e: Exception) {
             Result.failure(
                 Exception(
@@ -231,22 +259,24 @@ class AnimalReportadoRepository {
                     ?: return Result.failure(
                         Exception(
                             "FastAPI respondió correctamente, " +
-                                "pero no devolvió el reporte."
+                                    "pero no devolvió el reporte."
                         )
                     )
 
                 Result.success(resultado.id.toString())
+
             } else {
                 val error = respuesta.errorBody()?.string()
 
                 Result.failure(
                     Exception(
                         "FastAPI no pudo guardar el reporte.\n" +
-                            "Código: ${respuesta.code()}\n" +
-                            "Detalle: ${error ?: "Sin detalle"}"
+                                "Código: ${respuesta.code()}\n" +
+                                "Detalle: ${error ?: "Sin detalle"}"
                     )
                 )
             }
+
         } catch (e: Exception) {
             Result.failure(
                 Exception(
@@ -264,6 +294,7 @@ class AnimalReportadoRepository {
     private suspend fun obtenerToken(): String? {
         return withContext(Dispatchers.IO) {
             suspendCancellableCoroutine { continuation ->
+
                 authRepository.getFirebaseIdToken { token, _ ->
                     if (continuation.isActive) {
                         continuation.resume(token)
@@ -323,18 +354,20 @@ class AnimalReportadoRepository {
                 .build()
 
             httpClient.newCall(request).execute().use { response ->
+
                 val contenido = response.body?.string().orEmpty()
 
                 if (!response.isSuccessful) {
                     throw Exception(
                         "Cloudinary no pudo subir la foto. " +
-                            "Código: ${response.code}"
+                                "Código: ${response.code}"
                     )
                 }
 
                 val json = JSONObject(contenido)
                 json.getString("secure_url")
             }
+
         } finally {
             archivoTemporal.delete()
         }

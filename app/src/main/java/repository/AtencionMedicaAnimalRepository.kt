@@ -1,21 +1,107 @@
 package com.dogfellas.app.repository
 
+import com.dogfellas.app.data.AuthRepository
+import com.dogfellas.app.data.api.ApiClient
+import com.dogfellas.app.data.api.CitaVeterinariaAnimalApiDto
+import com.dogfellas.app.data.api.CitaVeterinariaAnimalCreateApiDto
+import com.dogfellas.app.data.api.DesparasitacionAnimalApiDto
+import com.dogfellas.app.data.api.DesparasitacionAnimalCreateApiDto
+import com.dogfellas.app.data.api.EmergenciaAnimalApiDto
+import com.dogfellas.app.data.api.EmergenciaAnimalCreateApiDto
+import com.dogfellas.app.data.api.HistorialMedicoApiDto
+import com.dogfellas.app.data.api.HistorialMedicoCreateApiDto
+import com.dogfellas.app.data.api.MedicamentoAnimalApiDto
+import com.dogfellas.app.data.api.MedicamentoAnimalCreateApiDto
+import com.dogfellas.app.data.api.VacunacionAnimalApiDto
+import com.dogfellas.app.data.api.VacunacionAnimalCreateApiDto
 import com.dogfellas.app.model.CitaVeterinariaAnimal
 import com.dogfellas.app.model.DesparasitacionAnimal
 import com.dogfellas.app.model.EmergenciaAnimal
 import com.dogfellas.app.model.HistorialMedicoAnimal
 import com.dogfellas.app.model.MedicamentoAnimal
 import com.dogfellas.app.model.VacunacionAnimal
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.suspendCancellableCoroutine
+import retrofit2.Response
+import kotlin.coroutines.resume
 
 class AtencionMedicaAnimalRepository {
 
-    private val db = FirebaseFirestore.getInstance()
+    private val api = ApiClient.atencionMedicaApi
+    private val authRepository = AuthRepository()
 
-    private fun animalCollection(reporteId: String) =
-        db.collection("animales_reportados")
-            .document(reporteId)
+    // ============================================================
+    // AUTENTICACIÓN Y SOLICITUDES HTTP
+    // ============================================================
+
+    private suspend fun obtenerToken(): String? =
+        suspendCancellableCoroutine { continuation ->
+            authRepository.getFirebaseIdToken { token, _ ->
+                if (continuation.isActive) {
+                    continuation.resume(token)
+                }
+            }
+        }
+
+    private suspend fun <T : Any> ejecutarSolicitud(
+        solicitud: suspend (String) -> Response<T>
+    ): Result<T> {
+        return try {
+            val token = obtenerToken()
+                ?: return Result.failure(
+                    Exception(
+                        "No fue posible obtener el token de Firebase. " +
+                            "Inicia sesión nuevamente."
+                    )
+                )
+
+            val respuesta = solicitud("Bearer $token")
+
+            if (respuesta.isSuccessful) {
+                val cuerpo = respuesta.body()
+
+                if (cuerpo != null) {
+                    Result.success(cuerpo)
+                } else {
+                    Result.failure(
+                        Exception(
+                            "El servidor respondió correctamente, " +
+                                "pero no devolvió información."
+                        )
+                    )
+                }
+            } else {
+                val detalle = respuesta.errorBody()
+                    ?.string()
+                    ?.takeIf { it.isNotBlank() }
+
+                Result.failure(
+                    Exception(
+                        "Error de FastAPI (${respuesta.code()}): " +
+                            (detalle ?: respuesta.message())
+                    )
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(
+                Exception(
+                    "No fue posible comunicarse con el backend: " +
+                        (e.message ?: "error desconocido"),
+                    e
+                )
+            )
+        }
+    }
+
+    private fun convertirAnimalId(reporteId: String): Int? =
+        reporteId.toIntOrNull()
+
+    private fun errorAnimalId(): Exception =
+        Exception(
+            "El identificador del animal no es válido para PostgreSQL."
+        )
 
     // ============================================================
     // HISTORIAL MÉDICO
@@ -24,69 +110,36 @@ class AtencionMedicaAnimalRepository {
     suspend fun obtenerHistorialMedico(
         reporteId: String
     ): Result<List<HistorialMedicoAnimal>> {
+        val animalId = convertirAnimalId(reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
-
-            val snapshot = animalCollection(reporteId)
-                .collection("historial_medico")
-                .orderBy("fecha")
-                .get()
-                .await()
-
-            val lista = snapshot.documents.mapNotNull { documento ->
-
-                documento
-                    .toObject(HistorialMedicoAnimal::class.java)
-                    ?.copy(
-                        id = documento.id,
-                        reporteId = reporteId
-                    )
+        return ejecutarSolicitud { token ->
+            api.obtenerHistorialMedicoAnimal(token, animalId)
+        }.map { lista ->
+            lista.map { dto ->
+                dto.toModelo(reporteId)
             }
-
-            Result.success(lista)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible cargar el historial médico."
-                )
-            )
         }
     }
 
     suspend fun registrarHistorialMedico(
         historial: HistorialMedicoAnimal
     ): Result<Unit> {
+        val animalId = convertirAnimalId(historial.reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
+        val datos = HistorialMedicoCreateApiDto(
+            veterinario = historial.veterinario,
+            fecha = historial.fecha,
+            tipo = historial.tipo,
+            diagnostico = historial.diagnostico,
+            tratamiento = historial.tratamiento,
+            observaciones = historial.observaciones
+        )
 
-            val documento = animalCollection(
-                historial.reporteId
-            )
-                .collection("historial_medico")
-                .document()
-
-            documento
-                .set(
-                    historial.copy(
-                        id = documento.id
-                    )
-                )
-                .await()
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible registrar la atención médica."
-                )
-            )
-        }
+        return ejecutarSolicitud { token ->
+            api.crearHistorialMedicoAnimal(token, animalId, datos)
+        }.map { Unit }
     }
 
     // ============================================================
@@ -96,69 +149,38 @@ class AtencionMedicaAnimalRepository {
     suspend fun obtenerMedicamentosAnimal(
         reporteId: String
     ): Result<List<MedicamentoAnimal>> {
+        val animalId = convertirAnimalId(reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
-
-            val snapshot = animalCollection(reporteId)
-                .collection("medicamentos")
-                .orderBy("fechaInicio")
-                .get()
-                .await()
-
-            val lista = snapshot.documents.mapNotNull { documento ->
-
-                documento
-                    .toObject(MedicamentoAnimal::class.java)
-                    ?.copy(
-                        id = documento.id,
-                        reporteId = reporteId
-                    )
+        return ejecutarSolicitud { token ->
+            api.obtenerMedicamentosAnimal(token, animalId)
+        }.map { lista ->
+            lista.map { dto ->
+                dto.toModelo(reporteId)
             }
-
-            Result.success(lista)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible cargar los medicamentos."
-                )
-            )
         }
     }
 
     suspend fun registrarMedicamentoAnimal(
         medicamento: MedicamentoAnimal
     ): Result<Unit> {
+        val animalId = convertirAnimalId(medicamento.reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
+        val datos = MedicamentoAnimalCreateApiDto(
+            nombre = medicamento.nombre,
+            dosis = medicamento.dosis,
+            frecuencia = medicamento.frecuencia,
+            fechaInicio = medicamento.fechaInicio,
+            fechaFin = medicamento.fechaFin,
+            veterinario = medicamento.veterinario,
+            observaciones = medicamento.observaciones,
+            activo = medicamento.activo
+        )
 
-            val documento = animalCollection(
-                medicamento.reporteId
-            )
-                .collection("medicamentos")
-                .document()
-
-            documento
-                .set(
-                    medicamento.copy(
-                        id = documento.id
-                    )
-                )
-                .await()
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible registrar el medicamento."
-                )
-            )
-        }
+        return ejecutarSolicitud { token ->
+            api.crearMedicamentoAnimal(token, animalId, datos)
+        }.map { Unit }
     }
 
     // ============================================================
@@ -168,69 +190,35 @@ class AtencionMedicaAnimalRepository {
     suspend fun obtenerVacunaciones(
         reporteId: String
     ): Result<List<VacunacionAnimal>> {
+        val animalId = convertirAnimalId(reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
-
-            val snapshot = animalCollection(reporteId)
-                .collection("vacunaciones")
-                .orderBy("fecha")
-                .get()
-                .await()
-
-            val lista = snapshot.documents.mapNotNull { documento ->
-
-                documento
-                    .toObject(VacunacionAnimal::class.java)
-                    ?.copy(
-                        id = documento.id,
-                        reporteId = reporteId
-                    )
+        return ejecutarSolicitud { token ->
+            api.obtenerVacunacionesAnimal(token, animalId)
+        }.map { lista ->
+            lista.map { dto ->
+                dto.toModelo(reporteId)
             }
-
-            Result.success(lista)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible cargar las vacunaciones."
-                )
-            )
         }
     }
 
     suspend fun registrarVacunacion(
         vacunacion: VacunacionAnimal
     ): Result<Unit> {
+        val animalId = convertirAnimalId(vacunacion.reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
+        val datos = VacunacionAnimalCreateApiDto(
+            vacuna = vacunacion.vacuna,
+            fecha = vacunacion.fecha,
+            proximaDosis = vacunacion.proximaDosis,
+            veterinario = vacunacion.veterinario,
+            observaciones = vacunacion.observaciones
+        )
 
-            val documento = animalCollection(
-                vacunacion.reporteId
-            )
-                .collection("vacunaciones")
-                .document()
-
-            documento
-                .set(
-                    vacunacion.copy(
-                        id = documento.id
-                    )
-                )
-                .await()
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible registrar la vacunación."
-                )
-            )
-        }
+        return ejecutarSolicitud { token ->
+            api.crearVacunacionAnimal(token, animalId, datos)
+        }.map { Unit }
     }
 
     // ============================================================
@@ -240,69 +228,35 @@ class AtencionMedicaAnimalRepository {
     suspend fun obtenerDesparasitaciones(
         reporteId: String
     ): Result<List<DesparasitacionAnimal>> {
+        val animalId = convertirAnimalId(reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
-
-            val snapshot = animalCollection(reporteId)
-                .collection("desparasitaciones")
-                .orderBy("fecha")
-                .get()
-                .await()
-
-            val lista = snapshot.documents.mapNotNull { documento ->
-
-                documento
-                    .toObject(DesparasitacionAnimal::class.java)
-                    ?.copy(
-                        id = documento.id,
-                        reporteId = reporteId
-                    )
+        return ejecutarSolicitud { token ->
+            api.obtenerDesparasitacionesAnimal(token, animalId)
+        }.map { lista ->
+            lista.map { dto ->
+                dto.toModelo(reporteId)
             }
-
-            Result.success(lista)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible cargar las desparasitaciones."
-                )
-            )
         }
     }
 
     suspend fun registrarDesparasitacion(
         desparasitacion: DesparasitacionAnimal
     ): Result<Unit> {
+        val animalId = convertirAnimalId(desparasitacion.reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
+        val datos = DesparasitacionAnimalCreateApiDto(
+            producto = desparasitacion.producto,
+            fecha = desparasitacion.fecha,
+            proximaFecha = desparasitacion.proximaFecha,
+            veterinario = desparasitacion.veterinario,
+            observaciones = desparasitacion.observaciones
+        )
 
-            val documento = animalCollection(
-                desparasitacion.reporteId
-            )
-                .collection("desparasitaciones")
-                .document()
-
-            documento
-                .set(
-                    desparasitacion.copy(
-                        id = documento.id
-                    )
-                )
-                .await()
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible registrar la desparasitación."
-                )
-            )
-        }
+        return ejecutarSolicitud { token ->
+            api.crearDesparasitacionAnimal(token, animalId, datos)
+        }.map { Unit }
     }
 
     // ============================================================
@@ -312,69 +266,36 @@ class AtencionMedicaAnimalRepository {
     suspend fun obtenerCitasVeterinarias(
         reporteId: String
     ): Result<List<CitaVeterinariaAnimal>> {
+        val animalId = convertirAnimalId(reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
-
-            val snapshot = animalCollection(reporteId)
-                .collection("citas_veterinarias")
-                .orderBy("fecha")
-                .get()
-                .await()
-
-            val lista = snapshot.documents.mapNotNull { documento ->
-
-                documento
-                    .toObject(CitaVeterinariaAnimal::class.java)
-                    ?.copy(
-                        id = documento.id,
-                        reporteId = reporteId
-                    )
+        return ejecutarSolicitud { token ->
+            api.obtenerCitasVeterinariasAnimal(token, animalId)
+        }.map { lista ->
+            lista.map { dto ->
+                dto.toModelo(reporteId)
             }
-
-            Result.success(lista)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible cargar las citas veterinarias."
-                )
-            )
         }
     }
 
     suspend fun registrarCitaVeterinaria(
         cita: CitaVeterinariaAnimal
     ): Result<Unit> {
+        val animalId = convertirAnimalId(cita.reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
+        val datos = CitaVeterinariaAnimalCreateApiDto(
+            veterinario = cita.veterinario,
+            direccionVeterinaria = cita.direccionVeterinaria,
+            fecha = cita.fecha,
+            motivo = cita.motivo,
+            estado = cita.estado,
+            observaciones = cita.observaciones
+        )
 
-            val documento = animalCollection(
-                cita.reporteId
-            )
-                .collection("citas_veterinarias")
-                .document()
-
-            documento
-                .set(
-                    cita.copy(
-                        id = documento.id
-                    )
-                )
-                .await()
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible registrar la cita veterinaria."
-                )
-            )
-        }
+        return ejecutarSolicitud { token ->
+            api.crearCitaVeterinariaAnimal(token, animalId, datos)
+        }.map { Unit }
     }
 
     // ============================================================
@@ -384,68 +305,118 @@ class AtencionMedicaAnimalRepository {
     suspend fun obtenerEmergenciasAnimal(
         reporteId: String
     ): Result<List<EmergenciaAnimal>> {
+        val animalId = convertirAnimalId(reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
-
-            val snapshot = animalCollection(reporteId)
-                .collection("emergencias_atencion")
-                .orderBy("fecha")
-                .get()
-                .await()
-
-            val lista = snapshot.documents.mapNotNull { documento ->
-
-                documento
-                    .toObject(EmergenciaAnimal::class.java)
-                    ?.copy(
-                        id = documento.id,
-                        reporteId = reporteId
-                    )
+        return ejecutarSolicitud { token ->
+            api.obtenerEmergenciasAnimal(token, animalId)
+        }.map { lista ->
+            lista.map { dto ->
+                dto.toModelo(reporteId)
             }
-
-            Result.success(lista)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible cargar las emergencias."
-                )
-            )
         }
     }
 
     suspend fun registrarEmergenciaAnimal(
         emergencia: EmergenciaAnimal
     ): Result<Unit> {
+        val animalId = convertirAnimalId(emergencia.reporteId)
+            ?: return Result.failure(errorAnimalId())
 
-        return try {
+        val datos = EmergenciaAnimalCreateApiDto(
+            fecha = emergencia.fecha,
+            motivo = emergencia.motivo,
+            atencionRealizada = emergencia.atencionRealizada,
+            veterinario = emergencia.veterinario,
+            resultado = emergencia.resultado,
+            observaciones = emergencia.observaciones
+        )
 
-            val documento = animalCollection(
-                emergencia.reporteId
-            )
-                .collection("emergencias_atencion")
-                .document()
-
-            documento
-                .set(
-                    emergencia.copy(
-                        id = documento.id
-                    )
-                )
-                .await()
-
-            Result.success(Unit)
-
-        } catch (e: Exception) {
-
-            Result.failure(
-                Exception(
-                    e.message
-                        ?: "No fue posible registrar la emergencia."
-                )
-            )
-        }
+        return ejecutarSolicitud { token ->
+            api.crearEmergenciaAnimal(token, animalId, datos)
+        }.map { Unit }
     }
+
+    // ============================================================
+    // CONVERSIÓN DE RESPUESTAS API A MODELOS ANDROID
+    // ============================================================
+
+    private fun HistorialMedicoApiDto.toModelo(
+        reporteIdOriginal: String
+    ) = HistorialMedicoAnimal(
+        id = id,
+        reporteId = reporteIdOriginal,
+        usuarioId = usuarioId?.toString().orEmpty(),
+        veterinario = veterinario,
+        fecha = fecha,
+        tipo = tipo,
+        diagnostico = diagnostico,
+        tratamiento = tratamiento,
+        observaciones = observaciones
+    )
+
+    private fun MedicamentoAnimalApiDto.toModelo(
+        reporteIdOriginal: String
+    ) = MedicamentoAnimal(
+        id = id,
+        reporteId = reporteIdOriginal,
+        nombre = nombre,
+        dosis = dosis,
+        frecuencia = frecuencia,
+        fechaInicio = fechaInicio,
+        fechaFin = fechaFin,
+        veterinario = veterinario,
+        observaciones = observaciones,
+        activo = activo
+    )
+
+    private fun VacunacionAnimalApiDto.toModelo(
+        reporteIdOriginal: String
+    ) = VacunacionAnimal(
+        id = id,
+        reporteId = reporteIdOriginal,
+        vacuna = vacuna,
+        fecha = fecha,
+        proximaDosis = proximaDosis,
+        veterinario = veterinario,
+        observaciones = observaciones
+    )
+
+    private fun DesparasitacionAnimalApiDto.toModelo(
+        reporteIdOriginal: String
+    ) = DesparasitacionAnimal(
+        id = id,
+        reporteId = reporteIdOriginal,
+        producto = producto,
+        fecha = fecha,
+        proximaFecha = proximaFecha,
+        veterinario = veterinario,
+        observaciones = observaciones
+    )
+
+    private fun CitaVeterinariaAnimalApiDto.toModelo(
+        reporteIdOriginal: String
+    ) = CitaVeterinariaAnimal(
+        id = id,
+        reporteId = reporteIdOriginal,
+        veterinario = veterinario,
+        direccionVeterinaria = direccionVeterinaria,
+        fecha = fecha,
+        motivo = motivo,
+        estado = estado,
+        observaciones = observaciones
+    )
+
+    private fun EmergenciaAnimalApiDto.toModelo(
+        reporteIdOriginal: String
+    ) = EmergenciaAnimal(
+        id = id,
+        reporteId = reporteIdOriginal,
+        fecha = fecha,
+        motivo = motivo,
+        atencionRealizada = atencionRealizada,
+        veterinario = veterinario,
+        resultado = resultado,
+        observaciones = observaciones
+    )
 }

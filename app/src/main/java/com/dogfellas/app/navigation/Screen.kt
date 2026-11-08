@@ -52,7 +52,23 @@ sealed class Screen(val route: String) {
             return "solicitud_adopcion?reporteId=$reporteId"
         }
     }
+    // 📥 SOLICITUDES RECIBIDAS
+    object SolicitudesRecibidas :
+        Screen("solicitudes_recibidas/{reporteId}") {
 
+        fun createRoute(reporteId: String): String {
+            return "solicitudes_recibidas/$reporteId"
+        }
+    }
+
+    // 📋 DETALLE DE SOLICITUD RECIBIDA
+    object DetalleSolicitudRecibida :
+        Screen("detalle_solicitud_recibida/{solicitudId}") {
+
+        fun createRoute(solicitudId: String): String {
+            return "detalle_solicitud_recibida/$solicitudId"
+        }
+    }
 
     // 🏥 ATENCIÓN MÉDICA
     object AtencionMedica :
@@ -96,7 +112,35 @@ sealed class Screen(val route: String) {
     // 🐶 MASCOTAS DEL USUARIO
     object Mascotas :
         Screen("mascotas")
+   
+        // 🩺 HISTORIAL MÉDICO DE MASCOTA PROPIA
+    object HistorialMedicoMascota :
+        Screen("historial_medico_mascota/{mascotaId}") {
 
+        fun createRoute(mascotaId: String): String {
+            return "historial_medico_mascota/$mascotaId"
+        }
+    }
+
+// 🔔 RECORDATORIOS MÉDICOS DE MASCOTA
+object RecordatoriosMedicosMascota :
+    Screen("recordatorios_medicos_mascota/{mascotaId}") {
+
+    fun createRoute(mascotaId: String): String {
+        return "recordatorios_medicos_mascota/$mascotaId"
+    }
+}
+// 📋 DETALLE DE CATEGORÍA MÉDICA
+object DetalleHistorialMedicoMascota :
+    Screen("detalle_historial_medico_mascota/{mascotaId}/{tipoRegistro}") {
+
+    fun createRoute(
+        mascotaId: String,
+        tipoRegistro: String
+    ): String {
+        return "detalle_historial_medico_mascota/$mascotaId/$tipoRegistro"
+    }
+}
 
     // 🔎 REPORTES ANTERIORES
     object PerdiMascota :

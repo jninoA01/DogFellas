@@ -1,5 +1,9 @@
+
 package com.dogfellas.app.ui.screen
 
+
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
@@ -49,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,12 +62,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.google.firebase.firestore.FirebaseFirestore
 import com.dogfellas.app.model.AnimalReportado
+import com.dogfellas.app.model.SolicitudAdopcion
 import com.dogfellas.app.navigation.Screen
 import com.dogfellas.app.ui.viewmodel.SolicitudAdopcionViewModel
-import kotlinx.coroutines.tasks.await
-
+import repository.AnimalReportadoRepository
 
 // =============================================================
 // COLORES DOGFELLAS
@@ -76,9 +80,8 @@ private val Cream = Color(0xFFF0DDB0)
 private val Beige = Color(0xFFD4A96A)
 private val WhiteCream = Color(0xFFF8F3EE)
 
-// Verde utilizado únicamente para indicar estados completados
 private val SuccessGreen = Color(0xFF4E7A52)
-
+private val ErrorRed = Color(0xFFB54747)
 
 // =============================================================
 // PANTALLA PRINCIPAL
@@ -109,82 +112,58 @@ fun DetalleAdopcionScreen(
     val consultandoSolicitud by
     solicitudViewModel.consultandoSolicitud.collectAsState()
 
+    val animalRepository = remember {
+        AnimalReportadoRepository()
+    }
 
     Log.d(
         "DetalleAdopcion",
         "reporteId recibido: [$reporteId]"
     )
 
-
     // =========================================================
-    // CARGAR ANIMAL
+    // CARGAR ANIMAL DESDE POSTGRESQL
     // =========================================================
 
     LaunchedEffect(reporteId) {
 
         cargando = true
         error = null
+        animal = null
 
-        try {
-
-            if (reporteId.isBlank()) {
-
-                error = "No se recibió el identificador del animal."
-                cargando = false
-
-                return@LaunchedEffect
-            }
-
-
-            val documento =
-                FirebaseFirestore
-                    .getInstance()
-                    .collection("animales_reportados")
-                    .document(reporteId)
-                    .get()
-                    .await()
-
-
-            if (documento.exists()) {
-
-                animal =
-                    documento
-                        .toObject(AnimalReportado::class.java)
-                        ?.copy(
-                            id = documento.id
-                        )
-
-
-                // =================================================
-                // COMPROBAR SI EL USUARIO YA TIENE SOLICITUD
-                // =================================================
-
-                solicitudViewModel
-                    .cargarSolicitudExistente(reporteId)
-
-            } else {
-
-                error = "No se encontró el animal."
-            }
-
-        } catch (e: Exception) {
-
-            Log.e(
-                "DetalleAdopcion",
-                "Error cargando animal",
-                e
-            )
-
-            error =
-                e.message
-                    ?: "No fue posible cargar la información."
-
-        } finally {
-
+        if (reporteId.isBlank()) {
+            error = "No se recibió el identificador del animal."
             cargando = false
+            return@LaunchedEffect
         }
-    }
 
+        val resultado =
+            animalRepository.obtenerAnimalPorId(reporteId)
+
+        resultado
+            .onSuccess { animalEncontrado ->
+
+                animal = animalEncontrado
+
+                // Consultar si el usuario ya presentó una solicitud.
+                solicitudViewModel.cargarSolicitudExistente(
+                    reporteId
+                )
+            }
+            .onFailure { excepcion ->
+
+                Log.e(
+                    "DetalleAdopcion",
+                    "Error consultando animal en PostgreSQL",
+                    excepcion
+                )
+
+                error = excepcion.message
+                    ?: "No fue posible cargar la información del animal."
+            }
+
+        cargando = false
+    }
 
     // =========================================================
     // CONTENEDOR GENERAL
@@ -210,9 +189,7 @@ fun DetalleAdopcionScreen(
 
             when {
 
-                // =================================================
                 // LOADING
-                // =================================================
 
                 cargando -> {
 
@@ -223,57 +200,41 @@ fun DetalleAdopcionScreen(
                     )
                 }
 
-
-                // =================================================
                 // ERROR
-                // =================================================
 
                 error != null -> {
 
                     ErrorDetalleAdopcion(
                         mensaje = error
                             ?: "Error desconocido",
-
                         onBack = {
                             navController.popBackStack()
                         },
-
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues)
                     )
                 }
 
-
-                // =================================================
                 // CONTENIDO
-                // =================================================
 
                 animal != null -> {
 
                     DetalleContenido(
                         animal = animal!!,
-
-                        solicitudExistente =
-                            solicitudExistente,
-
-                        consultandoSolicitud =
-                            consultandoSolicitud,
-
+                        solicitudExistente = solicitudExistente,
+                        consultandoSolicitud = consultandoSolicitud,
                         onBack = {
                             navController.popBackStack()
                         },
-
                         onSolicitarAdopcion = {
 
                             navController.navigate(
-                                Screen.SolicitudAdopcion
-                                    .createRoute(
-                                        animal!!.id
-                                    )
+                                Screen.SolicitudAdopcion.createRoute(
+                                    animal!!.id
+                                )
                             )
                         },
-
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues)
@@ -284,7 +245,6 @@ fun DetalleAdopcionScreen(
     }
 }
 
-
 // =============================================================
 // CONTENIDO PRINCIPAL
 // =============================================================
@@ -292,13 +252,24 @@ fun DetalleAdopcionScreen(
 @Composable
 private fun DetalleContenido(
     animal: AnimalReportado,
-    solicitudExistente:
-    com.dogfellas.app.model.SolicitudAdopcion?,
+    solicitudExistente: SolicitudAdopcion?,
     consultandoSolicitud: Boolean,
     onBack: () -> Unit,
     onSolicitarAdopcion: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+
+    val estadoAnimal = animal.estado
+        .trim()
+        .uppercase()
+
+    val animalAdoptado = estadoAnimal == "ADOPTADO"
+
+    val estadoSolicitud = solicitudExistente
+        ?.estado
+        ?.trim()
+        ?.uppercase()
+        .orEmpty()
 
     Box(
         modifier = modifier
@@ -307,12 +278,9 @@ private fun DetalleContenido(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(
-                    rememberScrollState()
-                )
+                .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
         ) {
-
 
             // =====================================================
             // FOTO HERO
@@ -324,22 +292,13 @@ private fun DetalleContenido(
                     .height(330.dp)
             ) {
 
-                // -------------------------------------------------
-                // FOTO
-                // -------------------------------------------------
-
                 if (animal.fotoUri.isNotBlank()) {
 
                     AsyncImage(
                         model = animal.fotoUri,
-
-                        contentDescription =
-                            "Foto de ${animal.especie}",
-
+                        contentDescription = "Foto de ${animal.especie}",
                         modifier = Modifier.fillMaxSize(),
-
-                        contentScale =
-                            ContentScale.Crop
+                        contentScale = ContentScale.Crop
                     )
 
                 } else {
@@ -355,30 +314,19 @@ private fun DetalleContenido(
                                     )
                                 )
                             ),
-
-                        contentAlignment =
-                            Alignment.Center
+                        contentAlignment = Alignment.Center
                     ) {
 
                         Icon(
-                            imageVector =
-                                Icons.Default.Pets,
-
-                            contentDescription =
-                                "Sin fotografía",
-
+                            imageVector = Icons.Default.Pets,
+                            contentDescription = "Sin fotografía",
                             tint = Cream,
-
-                            modifier =
-                                Modifier.size(90.dp)
+                            modifier = Modifier.size(90.dp)
                         )
                     }
                 }
 
-
-                // -------------------------------------------------
                 // DEGRADADO
-                // -------------------------------------------------
 
                 Box(
                     modifier = Modifier
@@ -388,18 +336,13 @@ private fun DetalleContenido(
                                 colors = listOf(
                                     Color.Transparent,
                                     Color.Transparent,
-                                    BrownDark.copy(
-                                        alpha = 0.85f
-                                    )
+                                    BrownDark.copy(alpha = 0.85f)
                                 )
                             )
                         )
                 )
 
-
-                // -------------------------------------------------
                 // BOTÓN VOLVER
-                // -------------------------------------------------
 
                 Surface(
                     modifier = Modifier
@@ -408,13 +351,8 @@ private fun DetalleContenido(
                             start = 16.dp,
                             top = 8.dp
                         ),
-
                     shape = CircleShape,
-
-                    color =
-                        BrownDark.copy(
-                            alpha = 0.75f
-                        )
+                    color = BrownDark.copy(alpha = 0.75f)
                 ) {
 
                     IconButton(
@@ -422,80 +360,70 @@ private fun DetalleContenido(
                     ) {
 
                         Icon(
-                            imageVector =
-                                Icons.Default.ArrowBack,
-
-                            contentDescription =
-                                "Volver",
-
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
                             tint = Cream
                         )
                     }
                 }
 
-
-                // -------------------------------------------------
-                // ESTADO EN ADOPCIÓN
-                // -------------------------------------------------
+                // ESTADO DEL ANIMAL
 
                 Surface(
                     modifier = Modifier
-                        .align(
-                            Alignment.BottomStart
-                        )
+                        .align(Alignment.BottomStart)
                         .padding(
                             start = 20.dp,
                             bottom = 20.dp
                         ),
-
-                    shape =
-                        RoundedCornerShape(50.dp),
-
-                    color = Beige
+                    shape = RoundedCornerShape(50.dp),
+                    color = if (animalAdoptado) {
+                        SuccessGreen
+                    } else {
+                        Beige
+                    }
                 ) {
 
                     Row(
-                        modifier =
-                            Modifier.padding(
-                                horizontal = 14.dp,
-                                vertical = 8.dp
-                            ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                        modifier = Modifier.padding(
+                            horizontal = 14.dp,
+                            vertical = 8.dp
+                        ),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
 
                         Icon(
-                            imageVector =
-                                Icons.Default.Favorite,
-
+                            imageVector = if (animalAdoptado) {
+                                Icons.Default.Check
+                            } else {
+                                Icons.Default.Favorite
+                            },
                             contentDescription = null,
-
-                            tint = BrownDark,
-
-                            modifier =
-                                Modifier.size(16.dp)
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
                         )
 
                         Spacer(
-                            modifier =
-                                Modifier.width(6.dp)
+                            modifier = Modifier.width(6.dp)
                         )
 
                         Text(
-                            text = "EN ADOPCIÓN",
-
-                            color = BrownDark,
-
+                            text = if (animalAdoptado) {
+                                "ADOPTADO"
+                            } else {
+                                "EN ADOPCIÓN"
+                            },
+                            color = if (animalAdoptado) {
+                                Color.White
+                            } else {
+                                BrownDark
+                            },
                             fontSize = 12.sp,
-
-                            fontWeight =
-                                FontWeight.Bold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
-
 
             // =====================================================
             // CONTENIDO
@@ -519,231 +447,126 @@ private fun DetalleContenido(
                     )
             ) {
 
-
-                // =================================================
                 // ESPECIE
-                // =================================================
 
                 Text(
-                    text =
-                        animal.especie.ifBlank {
-                            "Animal"
-                        },
-
+                    text = animal.especie.ifBlank {
+                        "Animal"
+                    },
                     color = BrownDark,
-
                     fontSize = 30.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
 
-
-                Spacer(
-                    modifier =
-                        Modifier.height(5.dp)
-                )
-
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
-                    text =
-                        "Busca una familia donde pueda sentirse seguro y querido.",
-
+                    text = if (animalAdoptado) {
+                        "Este animal ya encontró un hogar."
+                    } else {
+                        "Busca una familia donde pueda sentirse seguro y querido."
+                    },
                     color = BrownMedium,
-
                     fontSize = 14.sp,
-
                     lineHeight = 20.sp
                 )
 
+                Spacer(modifier = Modifier.height(22.dp))
 
-                Spacer(
-                    modifier =
-                        Modifier.height(22.dp)
-                )
-
-
-                // =================================================
                 // INFORMACIÓN RÁPIDA
-                // =================================================
 
                 Row(
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    horizontalArrangement =
-                        Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
 
                     InfoCard(
-                        modifier =
-                            Modifier.weight(1f),
-
-                        icon =
-                            Icons.Default.Pets,
-
-                        title =
-                            "Especie",
-
-                        value =
-                            animal.especie.ifBlank {
-                                "No indicada"
-                            }
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Pets,
+                        title = "Especie",
+                        value = animal.especie.ifBlank {
+                            "No indicada"
+                        }
                     )
 
-
                     InfoCard(
-                        modifier =
-                            Modifier.weight(1f),
-
-                        icon =
-                            Icons.Default.Description,
-
-                        title =
-                            "Condición",
-
-                        value =
-                            animal.condicion.ifBlank {
-                                "No indicada"
-                            }
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Description,
+                        title = "Condición",
+                        value = animal.condicion.ifBlank {
+                            "No indicada"
+                        }
                     )
                 }
 
+                Spacer(modifier = Modifier.height(28.dp))
 
-                Spacer(
-                    modifier =
-                        Modifier.height(28.dp)
-                )
-
-
-                // =================================================
                 // PROCESO
-                // =================================================
 
                 SectionTitle(
-                    icon =
-                        Icons.Default.Pets,
-
-                    title =
-                        "Proceso del animal"
+                    icon = Icons.Default.Pets,
+                    title = "Proceso del animal"
                 )
 
+                Spacer(modifier = Modifier.height(14.dp))
 
-                Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
+                LifecycleCard(
+                    animalAdoptado = animalAdoptado
                 )
 
+                Spacer(modifier = Modifier.height(28.dp))
 
-                LifecycleCard()
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(28.dp)
-                )
-
-
-                // =================================================
                 // DESCRIPCIÓN
-                // =================================================
 
                 SectionTitle(
-                    icon =
-                        Icons.Default.Description,
-
-                    title =
-                        "Sobre este animal"
+                    icon = Icons.Default.Description,
+                    title = "Sobre este animal"
                 )
 
-
-                Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
-                )
-
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Surface(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .animateContentSize(),
-
-                    shape =
-                        RoundedCornerShape(20.dp),
-
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize(),
+                    shape = RoundedCornerShape(20.dp),
                     color = Color.White
                 ) {
 
                     Text(
-                        text =
-                            animal.descripcion.ifBlank {
-                                "No hay una descripción disponible para este animal."
-                            },
-
-                        modifier =
-                            Modifier.padding(18.dp),
-
+                        text = animal.descripcion.ifBlank {
+                            "No hay una descripción disponible para este animal."
+                        },
+                        modifier = Modifier.padding(18.dp),
                         color = Brown,
-
                         fontSize = 15.sp,
-
                         lineHeight = 23.sp
                     )
                 }
 
+                Spacer(modifier = Modifier.height(28.dp))
 
-                Spacer(
-                    modifier =
-                        Modifier.height(28.dp)
-                )
-
-
-                // =================================================
                 // MENSAJE
-                // =================================================
 
                 AdoptionMessageCard()
 
+                Spacer(modifier = Modifier.height(28.dp))
 
-                Spacer(
-                    modifier =
-                        Modifier.height(28.dp)
-                )
-
-
-                // =================================================
                 // FECHA
-                // =================================================
 
                 if (animal.fechaReporte > 0L) {
 
                     InfoRow(
-                        icon =
-                            Icons.Default.CalendarToday,
-
-                        title =
-                            "Animal registrado",
-
-                        value =
-                            "Reporte disponible en DogFellas"
+                        icon = Icons.Default.CalendarToday,
+                        title = "Animal registrado",
+                        value = "Reporte disponible en DogFellas"
                     )
                 }
 
-
-                Spacer(
-                    modifier =
-                        Modifier.height(30.dp)
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.height(50.dp)
-                )
+                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(50.dp))
             }
         }
-
 
         // =========================================================
         // CTA FIJO
@@ -751,13 +574,9 @@ private fun DetalleContenido(
 
         Surface(
             modifier = Modifier
-                .align(
-                    Alignment.BottomCenter
-                )
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth(),
-
             color = WhiteCream,
-
             shadowElevation = 12.dp
         ) {
 
@@ -771,99 +590,81 @@ private fun DetalleContenido(
             ) {
 
                 AnimatedContent(
-                    targetState =
+                    targetState = Triple(
                         consultandoSolicitud,
+                        animalAdoptado,
+                        estadoSolicitud
+                    ),
+                    label = "estadoSolicitud"
+                ) { estado ->
 
-                    label =
-                        "estadoSolicitud"
-                ) { consultando ->
+                    when {
 
+                        // CONSULTANDO SOLICITUD
 
-                    // =============================================
-                    // CONSULTANDO SOLICITUD
-                    // =============================================
+                        estado.first -> {
 
-                    if (consultando) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(54.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(54.dp),
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Brown
+                                )
+                            }
+                        }
 
-                            contentAlignment =
-                                Alignment.Center
-                        ) {
+                        // ANIMAL ADOPTADO
 
-                            CircularProgressIndicator(
-                                modifier =
-                                    Modifier.size(24.dp),
+                        estado.second -> {
 
-                                color = Brown
+                            AnimalAdoptadoCard()
+                        }
+
+                        // SOLICITUD EXISTENTE
+
+                        solicitudExistente != null -> {
+
+                            SolicitudPresentadaCard(
+                                estado = estado.third
                             )
                         }
 
-
-                        // =============================================
-                        // YA EXISTE SOLICITUD
-                        // =============================================
-
-                    } else if (
-                        solicitudExistente != null
-                    ) {
-
-                        SolicitudPresentadaCard()
-
-
-                        // =============================================
                         // NO EXISTE SOLICITUD
-                        // =============================================
 
-                    } else {
+                        else -> {
 
-                        Button(
-                            onClick =
-                                onSolicitarAdopcion,
-
-                            modifier =
-                                Modifier
+                            Button(
+                                onClick = onSolicitarAdopcion,
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp),
-
-                            shape =
-                                RoundedCornerShape(18.dp),
-
-                            colors =
-                                ButtonDefaults.buttonColors(
-                                    containerColor =
-                                        BrownDark,
-
-                                    contentColor =
-                                        Cream
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = BrownDark,
+                                    contentColor = Cream
                                 )
-                        ) {
+                            ) {
 
-                            Icon(
-                                imageVector =
-                                    Icons.Default.VolunteerActivism,
+                                Icon(
+                                    imageVector = Icons.Default.VolunteerActivism,
+                                    contentDescription = null
+                                )
 
-                                contentDescription = null
-                            )
+                                Spacer(
+                                    modifier = Modifier.width(10.dp)
+                                )
 
-                            Spacer(
-                                modifier =
-                                    Modifier.width(10.dp)
-                            )
-
-                            Text(
-                                text =
-                                    "Quiero adoptar",
-
-                                fontSize =
-                                    16.sp,
-
-                                fontWeight =
-                                    FontWeight.Bold
-                            )
+                                Text(
+                                    text = "Quiero adoptar",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -871,7 +672,6 @@ private fun DetalleContenido(
         }
     }
 }
-
 
 // =============================================================
 // INFORMACIÓN RÁPIDA
@@ -880,73 +680,47 @@ private fun DetalleContenido(
 @Composable
 private fun InfoCard(
     modifier: Modifier,
-    icon:
-    androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     value: String
 ) {
 
     Surface(
         modifier = modifier,
-
-        shape =
-            RoundedCornerShape(18.dp),
-
+        shape = RoundedCornerShape(18.dp),
         color = Color.White
     ) {
 
         Column(
-            modifier =
-                Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
 
             Icon(
                 imageVector = icon,
-
                 contentDescription = null,
-
                 tint = BrownMedium,
-
-                modifier =
-                    Modifier.size(22.dp)
+                modifier = Modifier.size(22.dp)
             )
 
-
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
-
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = title,
-
                 color = BrownLight,
-
                 fontSize = 12.sp
             )
 
-
-            Spacer(
-                modifier =
-                    Modifier.height(3.dp)
-            )
-
+            Spacer(modifier = Modifier.height(3.dp))
 
             Text(
                 text = value,
-
                 color = BrownDark,
-
                 fontSize = 14.sp,
-
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
-
 
 // =============================================================
 // TÍTULO DE SECCIÓN
@@ -954,108 +728,76 @@ private fun InfoCard(
 
 @Composable
 private fun SectionTitle(
-    icon:
-    androidx.compose.ui.graphics.vector.ImageVector,
-
+    icon: ImageVector,
     title: String
 ) {
 
     Row(
-        verticalAlignment =
-            Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
     ) {
 
         Box(
             modifier = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
-                .background(
-                    Beige.copy(
-                        alpha = 0.35f
-                    )
-                ),
-
-            contentAlignment =
-                Alignment.Center
+                .background(Beige.copy(alpha = 0.35f)),
+            contentAlignment = Alignment.Center
         ) {
 
             Icon(
                 imageVector = icon,
-
                 contentDescription = null,
-
                 tint = BrownDark,
-
-                modifier =
-                    Modifier.size(19.dp)
+                modifier = Modifier.size(19.dp)
             )
         }
 
-
-        Spacer(
-            modifier =
-                Modifier.width(10.dp)
-        )
-
+        Spacer(modifier = Modifier.width(10.dp))
 
         Text(
             text = title,
-
             color = BrownDark,
-
             fontSize = 19.sp,
-
-            fontWeight =
-                FontWeight.Bold
+            fontWeight = FontWeight.Bold
         )
     }
 }
-
 
 // =============================================================
 // CICLO DE VIDA
 // =============================================================
 
 @Composable
-private fun LifecycleCard() {
+private fun LifecycleCard(
+    animalAdoptado: Boolean
+) {
 
-    val estados =
-        listOf(
-            "Reportado",
-            "En atención",
-            "Rescatado",
-            "En recuperación",
-            "En adopción"
-        )
-
+    val estados = listOf(
+        "Reportado",
+        "En atención",
+        "Rescatado",
+        "En recuperación",
+        if (animalAdoptado) "Adoptado" else "En adopción"
+    )
 
     Surface(
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(22.dp),
-
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
         color = Color.White
     ) {
 
         Column(
-            modifier =
-                Modifier.padding(18.dp)
+            modifier = Modifier.padding(18.dp)
         ) {
 
-            estados.forEachIndexed {
-                    index,
-                    estado ->
+            estados.forEachIndexed { index, estado ->
 
                 Row(
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     Column(
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
 
                         Box(
@@ -1063,130 +805,73 @@ private fun LifecycleCard() {
                                 .size(28.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (
-                                        estado ==
-                                        "En adopción"
-                                    ) {
-
+                                    if (index == estados.lastIndex && !animalAdoptado) {
                                         Beige
-
                                     } else {
-
-                                        SuccessGreen
-                                            .copy(
-                                                alpha =
-                                                    0.85f
-                                            )
+                                        SuccessGreen.copy(alpha = 0.85f)
                                     }
                                 ),
-
-                            contentAlignment =
-                                Alignment.Center
+                            contentAlignment = Alignment.Center
                         ) {
 
-                            if (
-                                estado ==
-                                "En adopción"
-                            ) {
+                            if (index == estados.lastIndex && !animalAdoptado) {
 
                                 Icon(
-                                    imageVector =
-                                        Icons.Default.Favorite,
-
-                                    contentDescription =
-                                        null,
-
-                                    tint =
-                                        BrownDark,
-
-                                    modifier =
-                                        Modifier.size(15.dp)
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = null,
+                                    tint = BrownDark,
+                                    modifier = Modifier.size(15.dp)
                                 )
 
                             } else {
 
                                 Icon(
-                                    imageVector =
-                                        Icons.Default.Check,
-
-                                    contentDescription =
-                                        null,
-
-                                    tint =
-                                        Color.White,
-
-                                    modifier =
-                                        Modifier.size(17.dp)
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(17.dp)
                                 )
                             }
                         }
 
-
-                        if (
-                            index <
-                            estados.lastIndex
-                        ) {
+                        if (index < estados.lastIndex) {
 
                             Box(
                                 modifier = Modifier
                                     .width(2.dp)
                                     .height(25.dp)
                                     .background(
-                                        SuccessGreen
-                                            .copy(
-                                                alpha =
-                                                    0.35f
-                                            )
+                                        SuccessGreen.copy(alpha = 0.35f)
                                     )
                             )
                         }
                     }
 
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(14.dp)
-                    )
-
+                    Spacer(modifier = Modifier.width(14.dp))
 
                     Text(
                         text = estado,
-
-                        color =
-                            if (
-                                estado ==
-                                "En adopción"
-                            ) {
-
-                                BrownDark
-
-                            } else {
-
-                                BrownMedium
-                            },
-
-                        fontSize =
-                            14.sp,
-
-                        fontWeight =
-                            if (
-                                estado ==
-                                "En adopción"
-                            ) {
-
-                                FontWeight.Bold
-
-                            } else {
-
-                                FontWeight.Normal
-                            }
+                        color = if (
+                            index == estados.lastIndex
+                        ) {
+                            BrownDark
+                        } else {
+                            BrownMedium
+                        },
+                        fontSize = 14.sp,
+                        fontWeight = if (
+                            index == estados.lastIndex
+                        ) {
+                            FontWeight.Bold
+                        } else {
+                            FontWeight.Normal
+                        }
                     )
                 }
             }
         }
     }
 }
-
 
 // =============================================================
 // MENSAJE DE ADOPCIÓN
@@ -1196,24 +881,14 @@ private fun LifecycleCard() {
 private fun AdoptionMessageCard() {
 
     Surface(
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(22.dp),
-
-        color =
-            Beige.copy(
-                alpha = 0.28f
-            )
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        color = Beige.copy(alpha = 0.28f)
     ) {
 
         Row(
-            modifier =
-                Modifier.padding(18.dp),
-
-            verticalAlignment =
-                Alignment.Top
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.Top
         ) {
 
             Box(
@@ -1221,62 +896,34 @@ private fun AdoptionMessageCard() {
                     .size(44.dp)
                     .clip(CircleShape)
                     .background(Beige),
-
-                contentAlignment =
-                    Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
 
                 Icon(
-                    imageVector =
-                        Icons.Default.Favorite,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-                        BrownDark,
-
-                    modifier =
-                        Modifier.size(22.dp)
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = BrownDark,
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
-
-            Spacer(
-                modifier =
-                    Modifier.width(14.dp)
-            )
-
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column {
 
                 Text(
-                    text =
-                        "Una adopción cambia una vida",
-
+                    text = "Una adopción cambia una vida",
                     color = BrownDark,
-
                     fontSize = 16.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
 
-
-                Spacer(
-                    modifier =
-                        Modifier.height(5.dp)
-                )
-
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
-                    text =
-                        "Al adoptar estás brindando un hogar, seguridad y una nueva oportunidad.",
-
+                    text = "Al adoptar estás brindando un hogar, seguridad y una nueva oportunidad.",
                     color = Brown,
-
                     fontSize = 13.sp,
-
                     lineHeight = 19.sp
                 )
             }
@@ -1284,99 +931,97 @@ private fun AdoptionMessageCard() {
     }
 }
 
-
 // =============================================================
 // INFORMACIÓN
 // =============================================================
 
 @Composable
 private fun InfoRow(
-    icon:
-    androidx.compose.ui.graphics.vector.ImageVector,
-
+    icon: ImageVector,
     title: String,
-
     value: String
 ) {
 
     Row(
-        verticalAlignment =
-            Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
     ) {
 
         Icon(
             imageVector = icon,
-
             contentDescription = null,
-
             tint = BrownMedium,
-
-            modifier =
-                Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp)
         )
 
-
-        Spacer(
-            modifier =
-                Modifier.width(10.dp)
-        )
-
+        Spacer(modifier = Modifier.width(10.dp))
 
         Column {
 
             Text(
                 text = title,
-
                 color = BrownLight,
-
                 fontSize = 12.sp
             )
 
-
             Text(
                 text = value,
-
                 color = Brown,
-
                 fontSize = 13.sp
             )
         }
     }
 }
 
-
 // =============================================================
 // SOLICITUD YA PRESENTADA
 // =============================================================
 
 @Composable
-private fun SolicitudPresentadaCard() {
+private fun SolicitudPresentadaCard(
+    estado: String
+) {
+
+    val estadoNormalizado = when (estado) {
+        "ACEPTADA" -> "Aceptada"
+        "RECHAZADA" -> "Rechazada"
+        "PENDIENTE" -> "Pendiente de revisión"
+        else -> estado.ifBlank {
+            "Estado no disponible"
+        }
+    }
+
+    val colorEstado = when (estado) {
+        "ACEPTADA" -> SuccessGreen
+        "RECHAZADA" -> ErrorRed
+        else -> BrownMedium
+    }
+
+    val descripcion = when (estado) {
+        "ACEPTADA" ->
+            "Tu solicitud fue aceptada. El proceso de adopción continúa."
+
+        "RECHAZADA" ->
+            "Tu solicitud fue rechazada. Consulta el proceso con el responsable del animal."
+
+        "PENDIENTE" ->
+            "Tu solicitud está registrada y espera revisión."
+
+        else ->
+            "Ya existe una solicitud registrada para este animal."
+    }
 
     Surface(
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(20.dp),
-
-        color =
-            Beige.copy(
-                alpha = 0.20f
-            )
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Beige.copy(alpha = 0.20f)
     ) {
 
         Column(
-            modifier =
-                Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
 
-            // =================================================
-            // ENCABEZADO
-            // =================================================
-
             Row(
-                verticalAlignment =
-                    Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically
             ) {
 
                 Box(
@@ -1384,143 +1029,79 @@ private fun SolicitudPresentadaCard() {
                         .size(42.dp)
                         .clip(CircleShape)
                         .background(Beige),
-
-                    contentAlignment =
-                        Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
 
                     Icon(
-                        imageVector =
-                            Icons.Default.Check,
-
-                        contentDescription =
-                            null,
-
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
                         tint = BrownDark,
-
-                        modifier =
-                            Modifier.size(22.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-
-                Spacer(
-                    modifier =
-                        Modifier.width(12.dp)
-                )
-
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(
-                    modifier =
-                        Modifier.weight(1f)
+                    modifier = Modifier.weight(1f)
                 ) {
 
                     Text(
-                        text =
-                            "Solicitud presentada",
-
+                        text = "Solicitud presentada",
                         color = BrownDark,
-
                         fontSize = 16.sp,
-
-                        fontWeight =
-                            FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
 
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(3.dp)
-                    )
-
+                    Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
-                        text =
-                            "Tu solicitud para este animal ya fue registrada.",
-
+                        text = descripcion,
                         color = BrownMedium,
-
                         fontSize = 12.sp,
-
                         lineHeight = 17.sp
                     )
                 }
             }
 
-
-            Spacer(
-                modifier =
-                    Modifier.height(14.dp)
-            )
-
-
-            // =================================================
-            // ESTADO DE LA SOLICITUD
-            // =================================================
+            Spacer(modifier = Modifier.height(14.dp))
 
             Surface(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                shape =
-                    RoundedCornerShape(12.dp),
-
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
                 color = Color.White
             ) {
 
                 Row(
-                    modifier =
-                        Modifier.padding(
-                            horizontal = 12.dp,
-                            vertical = 10.dp
-                        ),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    modifier = Modifier.padding(
+                        horizontal = 12.dp,
+                        vertical = 10.dp
+                    ),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     Icon(
-                        imageVector =
-                            Icons.Default.Description,
-
-                        contentDescription =
-                            null,
-
-                        tint = BrownMedium,
-
-                        modifier =
-                            Modifier.size(18.dp)
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = colorEstado,
+                        modifier = Modifier.size(18.dp)
                     )
 
-
-                    Spacer(
-                        modifier =
-                            Modifier.width(8.dp)
-                    )
-
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Column {
 
                         Text(
-                            text =
-                                "Estado de la solicitud",
-
+                            text = "Estado de la solicitud",
                             color = BrownLight,
-
                             fontSize = 11.sp
                         )
 
-
                         Text(
-                            text =
-                                "Pendiente de revisión",
-
-                            color = BrownDark,
-
+                            text = estadoNormalizado,
+                            color = colorEstado,
                             fontSize = 13.sp,
-
-                            fontWeight =
-                                FontWeight.Bold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -1529,6 +1110,63 @@ private fun SolicitudPresentadaCard() {
     }
 }
 
+// =============================================================
+// ANIMAL ADOPTADO
+// =============================================================
+
+@Composable
+private fun AnimalAdoptadoCard() {
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = SuccessGreen.copy(alpha = 0.13f)
+    ) {
+
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(SuccessGreen),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
+
+                Text(
+                    text = "¡Ya encontró un hogar!",
+                    color = BrownDark,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Este animal ya fue adoptado y no recibe nuevas solicitudes.",
+                    color = BrownMedium,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp
+                )
+            }
+        }
+    }
+}
 
 // =============================================================
 // LOADING
@@ -1541,39 +1179,27 @@ private fun LoadingDetalleAdopcion(
 
     Box(
         modifier = modifier,
-
-        contentAlignment =
-            Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
 
         Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             CircularProgressIndicator(
                 color = Beige
             )
 
-
-            Spacer(
-                modifier =
-                    Modifier.height(16.dp)
-            )
-
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text =
-                    "Cargando información...",
-
+                text = "Cargando información...",
                 color = Cream,
-
                 fontSize = 14.sp
             )
         }
     }
 }
-
 
 // =============================================================
 // ERROR
@@ -1582,74 +1208,44 @@ private fun LoadingDetalleAdopcion(
 @Composable
 private fun ErrorDetalleAdopcion(
     mensaje: String,
-
     onBack: () -> Unit,
-
     modifier: Modifier = Modifier
 ) {
 
     Box(
-        modifier =
-            modifier.padding(24.dp),
-
-        contentAlignment =
-            Alignment.Center
+        modifier = modifier.padding(24.dp),
+        contentAlignment = Alignment.Center
     ) {
 
         Column(
-            horizontalAlignment =
-                Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             Icon(
-                imageVector =
-                    Icons.Default.Pets,
-
-                contentDescription =
-                    null,
-
+                imageVector = Icons.Default.Pets,
+                contentDescription = null,
                 tint = Cream,
-
-                modifier =
-                    Modifier.size(70.dp)
+                modifier = Modifier.size(70.dp)
             )
 
-
-            Spacer(
-                modifier =
-                    Modifier.height(18.dp)
-            )
-
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = mensaje,
-
                 color = Cream,
-
                 fontSize = 18.sp,
-
-                fontWeight =
-                    FontWeight.Bold,
-
-                textAlign =
-                    TextAlign.Center
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
 
-
-            Spacer(
-                modifier =
-                    Modifier.height(20.dp)
-            )
-
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = onBack,
-
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = Beige,
-                        contentColor = BrownDark
-                    )
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Beige,
+                    contentColor = BrownDark
+                )
             ) {
 
                 Text(

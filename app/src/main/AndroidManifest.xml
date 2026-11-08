@@ -12,6 +12,13 @@
         android:name="android.permission.INTERNET" />
 
     <!-- ========================================================= -->
+    <!-- NOTIFICACIONES FCM                                         -->
+    <!-- ========================================================= -->
+
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ========================================================= -->
     <!-- CÁMARA                                                     -->
     <!-- ========================================================= -->
 
@@ -32,7 +39,6 @@
     <uses-permission
         android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-
     <application
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
@@ -44,7 +50,6 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-
         <!-- ===================================================== -->
         <!-- GOOGLE MAPS / PLACES                                   -->
         <!-- ===================================================== -->
@@ -52,7 +57,6 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBLwewMx6UCGOsZIr_Asrnhc14S7ztYLU8" />
-
 
         <!-- ===================================================== -->
         <!-- FILE PROVIDER                                          -->
@@ -70,6 +74,20 @@
 
         </provider>
 
+        <!-- ===================================================== -->
+        <!-- FIREBASE CLOUD MESSAGING                               -->
+        <!-- ===================================================== -->
+
+        <service
+            android:name=".service.DogFellasMessagingService"
+            android:exported="false">
+
+            <intent-filter>
+                <action
+                    android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+
+        </service>
 
         <!-- ===================================================== -->
         <!-- SPLASH SCREEN                                          -->
@@ -80,17 +98,14 @@
             android:exported="true">
 
             <intent-filter>
-
                 <action
                     android:name="android.intent.action.MAIN" />
 
                 <category
                     android:name="android.intent.category.LAUNCHER" />
-
             </intent-filter>
 
         </activity>
-
 
         <!-- ===================================================== -->
         <!-- MAIN ACTIVITY                                          -->

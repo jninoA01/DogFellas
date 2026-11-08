@@ -54,6 +54,8 @@ android {
 
 dependencies {
 
+    // 🔔 Programación de notificaciones locales
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
     // ✅ Multidex
     implementation("androidx.multidex:multidex:2.0.1")
 
@@ -63,6 +65,9 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // 🔔 Firebase Cloud Messaging
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // ✅ Compose BOM
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))

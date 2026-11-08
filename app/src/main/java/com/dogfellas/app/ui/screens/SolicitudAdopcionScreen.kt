@@ -1,3 +1,4 @@
+
 package com.dogfellas.app.ui.screens
 
 import android.app.DatePickerDialog
@@ -52,6 +53,17 @@ fun SolicitudAdopcionScreen(
     val guardando by viewModel.guardando.collectAsState()
     val mensaje by viewModel.mensaje.collectAsState()
     val solicitudCreada by viewModel.solicitudCreada.collectAsState()
+
+    val solicitudExistente by viewModel.solicitudExistente.collectAsState()
+    val consultandoSolicitud by viewModel.consultandoSolicitud.collectAsState()
+
+    // ---------------------------------------------------------
+    // CONSULTAR SOLICITUD EXISTENTE
+    // ---------------------------------------------------------
+
+    LaunchedEffect(reporteId) {
+        viewModel.cargarSolicitudExistente(reporteId)
+    }
 
     // ---------------------------------------------------------
     // DATOS DEL SOLICITANTE
@@ -172,8 +184,7 @@ fun SolicitudAdopcionScreen(
                 ) {
 
                     Icon(
-                        imageVector =
-                            Icons.AutoMirrored.Rounded.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = "Volver",
                         tint = WhiteCream
                     )
@@ -190,9 +201,7 @@ fun SolicitudAdopcionScreen(
                         fontWeight = FontWeight.Bold
                     )
 
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
                         text = "Conozcamos un poco sobre ti",
@@ -209,17 +218,67 @@ fun SolicitudAdopcionScreen(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(
-                        rememberScrollState()
-                    )
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
             ) {
 
                 FormularioHeader()
 
-                Spacer(
-                    modifier = Modifier.height(18.dp)
-                )
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // =================================================
+                // SOLICITUD EXISTENTE
+                // =================================================
+
+                if (consultandoSolicitud) {
+
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        color = Beige
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                if (solicitudExistente != null) {
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0x332D1B12)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+
+                            Text(
+                                text = "Ya tienes una solicitud registrada",
+                                color = WhiteCream,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "Estado: ${solicitudExistente?.estado}",
+                                color = Cream,
+                                fontSize = 14.sp
+                            )
+
+                            Text(
+                                text = "No necesitas enviar otra solicitud para este animal.",
+                                color = Cream,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 // =================================================
                 // 1. DATOS DEL SOLICITANTE
@@ -234,8 +293,7 @@ fun SolicitudAdopcionScreen(
                         titulo = "Nombre completo *",
                         valor = nombreCompleto,
                         onValorChange = {
-                            nombreCompleto =
-                                filtrarTextoNombre(it)
+                            nombreCompleto = filtrarTextoNombre(it)
                         }
                     )
 
@@ -255,11 +313,9 @@ fun SolicitudAdopcionScreen(
                         titulo = "Número de documento *",
                         valor = numeroDocumento,
                         onValorChange = {
-                            numeroDocumento =
-                                filtrarNumeros(it)
+                            numeroDocumento = filtrarNumeros(it)
                         },
-                        keyboardType =
-                            KeyboardType.Number,
+                        keyboardType = KeyboardType.Number,
                         maxLength = 15
                     )
 
@@ -268,50 +324,29 @@ fun SolicitudAdopcionScreen(
                         fecha = fechaNacimiento,
                         onClick = {
 
-                            val calendario =
-                                Calendar.getInstance()
+                            val calendario = Calendar.getInstance()
 
                             DatePickerDialog(
                                 context,
-                                { _: DatePicker,
-                                  year: Int,
-                                  month: Int,
-                                  day: Int ->
+                                { _: DatePicker, year: Int, month: Int, day: Int ->
 
-                                    val seleccion =
-                                        Calendar.getInstance()
+                                    val seleccion = Calendar.getInstance()
 
-                                    seleccion.set(
-                                        year,
-                                        month,
-                                        day
+                                    seleccion.set(year, month, day)
+
+                                    val formato = SimpleDateFormat(
+                                        "dd/MM/yyyy",
+                                        Locale.getDefault()
                                     )
 
-                                    val formato =
-                                        SimpleDateFormat(
-                                            "dd/MM/yyyy",
-                                            Locale.getDefault()
-                                        )
-
-                                    fechaNacimiento =
-                                        formato.format(
-                                            seleccion.time
-                                        )
+                                    fechaNacimiento = formato.format(seleccion.time)
                                 },
-                                calendario.get(
-                                    Calendar.YEAR
-                                ),
-                                calendario.get(
-                                    Calendar.MONTH
-                                ),
-                                calendario.get(
-                                    Calendar.DAY_OF_MONTH
-                                )
+                                calendario.get(Calendar.YEAR),
+                                calendario.get(Calendar.MONTH),
+                                calendario.get(Calendar.DAY_OF_MONTH)
                             ).apply {
 
-                                // No permite fechas futuras
-                                datePicker.maxDate =
-                                    System.currentTimeMillis()
+                                datePicker.maxDate = System.currentTimeMillis()
 
                             }.show()
                         }
@@ -321,11 +356,9 @@ fun SolicitudAdopcionScreen(
                         titulo = "Teléfono *",
                         valor = telefono,
                         onValorChange = {
-                            telefono =
-                                filtrarNumeros(it)
+                            telefono = filtrarNumeros(it)
                         },
-                        keyboardType =
-                            KeyboardType.Phone,
+                        keyboardType = KeyboardType.Phone,
                         maxLength = 15
                     )
 
@@ -335,8 +368,7 @@ fun SolicitudAdopcionScreen(
                         onValorChange = {
                             correo = it.trimStart()
                         },
-                        keyboardType =
-                            KeyboardType.Email
+                        keyboardType = KeyboardType.Email
                     )
                 }
 
@@ -352,17 +384,13 @@ fun SolicitudAdopcionScreen(
                     Campo(
                         titulo = "Ciudad *",
                         valor = ciudad,
-                        onValorChange = {
-                            ciudad = it
-                        }
+                        onValorChange = { ciudad = it }
                     )
 
                     Campo(
                         titulo = "Dirección *",
                         valor = direccion,
-                        onValorChange = {
-                            direccion = it
-                        }
+                        onValorChange = { direccion = it }
                     )
 
                     Selector(
@@ -399,14 +427,9 @@ fun SolicitudAdopcionScreen(
                     if (vivienda == "Arrendada") {
 
                         Selector(
-                            titulo =
-                                "¿Tiene autorización del propietario? *",
-                            opciones = listOf(
-                                "Sí",
-                                "No"
-                            ),
-                            seleccion =
-                                autorizacionPropietario
+                            titulo = "¿Tiene autorización del propietario? *",
+                            opciones = listOf("Sí", "No"),
+                            seleccion = autorizacionPropietario
                         ) {
                             autorizacionPropietario = it
                         }
@@ -425,33 +448,24 @@ fun SolicitudAdopcionScreen(
                     Campo(
                         titulo = "¿Con quién vive? *",
                         valor = conQuienVive,
-                        onValorChange = {
-                            conQuienVive = it
-                        },
+                        onValorChange = { conQuienVive = it },
                         singleLine = false,
                         minLines = 2
                     )
 
                     Campo(
-                        titulo =
-                            "Número de personas en el hogar *",
+                        titulo = "Número de personas en el hogar *",
                         valor = personasHogar,
                         onValorChange = {
-                            personasHogar =
-                                filtrarEnteroPositivo(it)
+                            personasHogar = filtrarEnteroPositivo(it)
                         },
-                        keyboardType =
-                            KeyboardType.Number,
+                        keyboardType = KeyboardType.Number,
                         maxLength = 2
                     )
 
                     Selector(
-                        titulo =
-                            "¿Todos están de acuerdo con la adopción? *",
-                        opciones = listOf(
-                            "Sí",
-                            "No"
-                        ),
+                        titulo = "¿Todos están de acuerdo con la adopción? *",
+                        opciones = listOf("Sí", "No"),
                         seleccion = acuerdoFamilia
                     ) {
                         acuerdoFamilia = it
@@ -468,112 +482,82 @@ fun SolicitudAdopcionScreen(
                 ) {
 
                     Selector(
-                        titulo =
-                            "¿Ha tenido mascotas anteriormente? *",
-                        opciones = listOf(
-                            "Sí",
-                            "No"
-                        ),
+                        titulo = "¿Ha tenido mascotas anteriormente? *",
+                        opciones = listOf("Sí", "No"),
                         seleccion = haTenidoMascotas
                     ) {
                         haTenidoMascotas = it
+
+                        if (it == "No") {
+                            experienciaAnimales = ""
+                            situacionMascotasAnteriores = ""
+                        }
                     }
 
-                    Campo(
-                        titulo =
-                            "Cuéntenos sobre su experiencia",
-                        valor =
-                            experienciaAnimales,
-                        onValorChange = {
-                            experienciaAnimales = it
-                        },
-                        singleLine = false,
-                        minLines = 3
-                    )
+                    if (haTenidoMascotas == "Sí") {
+
+                        Campo(
+                            titulo = "Cuéntenos sobre su experiencia",
+                            valor = experienciaAnimales,
+                            onValorChange = { experienciaAnimales = it },
+                            singleLine = false,
+                            minLines = 3
+                        )
+
+                        Campo(
+                            titulo = "Situación de mascotas anteriores",
+                            valor = situacionMascotasAnteriores,
+                            onValorChange = {
+                                situacionMascotasAnteriores = it
+                            },
+                            singleLine = false,
+                            minLines = 3
+                        )
+                    }
 
                     Selector(
-                        titulo =
-                            "¿Tiene mascotas actualmente? *",
-                        opciones = listOf(
-                            "Sí",
-                            "No"
-                        ),
+                        titulo = "¿Tiene mascotas actualmente? *",
+                        opciones = listOf("Sí", "No"),
                         seleccion = mascotasActuales
                     ) {
 
                         mascotasActuales = it
 
                         if (it == "No") {
-
                             cantidadMascotas = ""
                             mascotasVacunadas = ""
                             mascotasEsterilizadas = ""
                         }
                     }
 
-                    // -----------------------------------------
-                    // Solo aparece si tiene mascotas
-                    // -----------------------------------------
-
                     if (mascotasActuales == "Sí") {
 
                         Campo(
-                            titulo =
-                                "Cantidad de mascotas actuales *",
-                            valor =
-                                cantidadMascotas,
+                            titulo = "Cantidad de mascotas actuales *",
+                            valor = cantidadMascotas,
                             onValorChange = {
-                                cantidadMascotas =
-                                    filtrarEnteroPositivo(
-                                        it
-                                    )
+                                cantidadMascotas = filtrarEnteroPositivo(it)
                             },
-                            keyboardType =
-                                KeyboardType.Number,
+                            keyboardType = KeyboardType.Number,
                             maxLength = 2
                         )
 
                         Selector(
-                            titulo =
-                                "¿Están vacunadas? *",
-                            opciones = listOf(
-                                "Sí",
-                                "No",
-                                "No aplica"
-                            ),
-                            seleccion =
-                                mascotasVacunadas
+                            titulo = "¿Están vacunadas? *",
+                            opciones = listOf("Sí", "No", "No aplica"),
+                            seleccion = mascotasVacunadas
                         ) {
                             mascotasVacunadas = it
                         }
 
                         Selector(
-                            titulo =
-                                "¿Están esterilizadas? *",
-                            opciones = listOf(
-                                "Sí",
-                                "No",
-                                "No aplica"
-                            ),
-                            seleccion =
-                                mascotasEsterilizadas
+                            titulo = "¿Están esterilizadas? *",
+                            opciones = listOf("Sí", "No", "No aplica"),
+                            seleccion = mascotasEsterilizadas
                         ) {
                             mascotasEsterilizadas = it
                         }
                     }
-
-                    Campo(
-                        titulo =
-                            "Situación de mascotas anteriores",
-                        valor =
-                            situacionMascotasAnteriores,
-                        onValorChange = {
-                            situacionMascotasAnteriores =
-                                it
-                        },
-                        singleLine = false,
-                        minLines = 3
-                    )
                 }
 
                 // =================================================
@@ -586,8 +570,7 @@ fun SolicitudAdopcionScreen(
                 ) {
 
                     Selector(
-                        titulo =
-                            "¿Dónde permanecerá principalmente?",
+                        titulo = "¿Dónde permanecerá principalmente?",
                         opciones = listOf(
                             "Dentro de la vivienda",
                             "Patio o espacio exterior",
@@ -600,8 +583,7 @@ fun SolicitudAdopcionScreen(
                     }
 
                     Selector(
-                        titulo =
-                            "¿Cuánto tiempo permanecerá solo?",
+                        titulo = "¿Cuánto tiempo permanecerá solo?",
                         opciones = listOf(
                             "Menos de 2 horas",
                             "2 a 4 horas",
@@ -614,35 +596,21 @@ fun SolicitudAdopcionScreen(
                     }
 
                     Campo(
-                        titulo =
-                            "¿Quién será responsable de alimentarlo?",
-                        valor =
-                            responsableAlimentacion,
-                        onValorChange = {
-                            responsableAlimentacion =
-                                it
-                        }
+                        titulo = "¿Quién será responsable de alimentarlo?",
+                        valor = responsableAlimentacion,
+                        onValorChange = { responsableAlimentacion = it }
                     )
 
                     Campo(
-                        titulo =
-                            "¿Quién asumirá los gastos?",
-                        valor =
-                            responsableGastos,
-                        onValorChange = {
-                            responsableGastos = it
-                        }
+                        titulo = "¿Quién asumirá los gastos?",
+                        valor = responsableGastos,
+                        onValorChange = { responsableGastos = it }
                     )
 
                     Selector(
-                        titulo =
-                            "¿Puede asumir atención veterinaria?",
-                        opciones = listOf(
-                            "Sí",
-                            "No"
-                        ),
-                        seleccion =
-                            capacidadVeterinaria
+                        titulo = "¿Puede asumir atención veterinaria?",
+                        opciones = listOf("Sí", "No"),
+                        seleccion = capacidadVeterinaria
                     ) {
                         capacidadVeterinaria = it
                     }
@@ -658,34 +626,25 @@ fun SolicitudAdopcionScreen(
                 ) {
 
                     Campo(
-                        titulo =
-                            "¿Cuál es su principal motivo para adoptar? *",
+                        titulo = "¿Cuál es su principal motivo para adoptar? *",
                         valor = motivo,
-                        onValorChange = {
-                            motivo = it
-                        },
+                        onValorChange = { motivo = it },
                         singleLine = false,
                         minLines = 3
                     )
 
                     Campo(
-                        titulo =
-                            "¿Por qué eligió este animal? *",
+                        titulo = "¿Por qué eligió este animal? *",
                         valor = porQueAnimal,
-                        onValorChange = {
-                            porQueAnimal = it
-                        },
+                        onValorChange = { porQueAnimal = it },
                         singleLine = false,
                         minLines = 3
                     )
 
                     Campo(
-                        titulo =
-                            "¿Qué expectativas tiene de la adopción? *",
+                        titulo = "¿Qué expectativas tiene de la adopción? *",
                         valor = expectativas,
-                        onValorChange = {
-                            expectativas = it
-                        },
+                        onValorChange = { expectativas = it },
                         singleLine = false,
                         minLines = 3
                     )
@@ -701,41 +660,32 @@ fun SolicitudAdopcionScreen(
                 ) {
 
                     Row(
-                        verticalAlignment =
-                            Alignment.Top
+                        verticalAlignment = Alignment.Top
                     ) {
 
                         Checkbox(
-                            checked =
-                                compromisoAdopcion,
+                            checked = compromisoAdopcion,
                             onCheckedChange = {
-                                compromisoAdopcion =
-                                    it
+                                compromisoAdopcion = it
                             },
-                            colors =
-                                CheckboxDefaults.colors(
-                                    checkedColor =
-                                        Beige
-                                )
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Beige
+                            )
                         )
 
                         Text(
-                            text =
-                                "Declaro que la información "
-                                        + "suministrada es verdadera "
-                                        + "y me comprometo a brindar "
-                                        + "al animal alimentación, "
-                                        + "atención veterinaria, "
-                                        + "protección, afecto y "
-                                        + "condiciones adecuadas "
-                                        + "de vida.",
+                            text = "Declaro que la información " +
+                                    "suministrada es verdadera " +
+                                    "y me comprometo a brindar " +
+                                    "al animal alimentación, " +
+                                    "atención veterinaria, " +
+                                    "protección, afecto y " +
+                                    "condiciones adecuadas " +
+                                    "de vida.",
                             color = WhiteCream,
                             fontSize = 14.sp,
                             lineHeight = 21.sp,
-                            modifier =
-                                Modifier.padding(
-                                    top = 12.dp
-                                )
+                            modifier = Modifier.padding(top = 12.dp)
                         )
                     }
                 }
@@ -749,12 +699,8 @@ fun SolicitudAdopcionScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(
-                                RoundedCornerShape(14.dp)
-                            )
-                            .background(
-                                Color(0x332D1B12)
-                            )
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0x332D1B12))
                             .padding(14.dp)
                     ) {
 
@@ -762,15 +708,12 @@ fun SolicitudAdopcionScreen(
                             text = mensaje ?: "",
                             color = Color(0xFFFFCDD2),
                             fontSize = 14.sp,
-                            fontWeight =
-                                FontWeight.Bold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Spacer(
-                    modifier = Modifier.height(14.dp)
-                )
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // =================================================
                 // BOTÓN ENVIAR
@@ -780,116 +723,51 @@ fun SolicitudAdopcionScreen(
                     onClick = {
 
                         viewModel.enviarSolicitud(
-
-                            reporteId =
-                                reporteId,
-
-                            nombreCompleto =
-                                nombreCompleto,
-
-                            tipoDocumento =
-                                tipoDocumento,
-
-                            numeroDocumento =
-                                numeroDocumento,
-
-                            fechaNacimiento =
-                                fechaNacimiento,
-
-                            telefono =
-                                telefono,
-
-                            correo =
-                                correo,
-
-                            ciudad =
-                                ciudad,
-
-                            direccion =
-                                direccion,
-
-                            tipoVivienda =
-                                tipoVivienda,
-
-                            vivienda =
-                                vivienda,
-
-                            autorizacionPropietario =
-                                autorizacionPropietario,
-
-                            conQuienVive =
-                                conQuienVive,
-
-                            personasHogar =
-                                personasHogar,
-
-                            acuerdoFamilia =
-                                acuerdoFamilia,
-
-                            haTenidoMascotas =
-                                haTenidoMascotas,
-
-                            experienciaAnimales =
-                                experienciaAnimales,
-
-                            mascotasActuales =
-                                mascotasActuales,
-
-                            cantidadMascotas =
-                                cantidadMascotas,
-
-                            mascotasVacunadas =
-                                mascotasVacunadas,
-
-                            mascotasEsterilizadas =
-                                mascotasEsterilizadas,
-
-                            situacionMascotasAnteriores =
-                                situacionMascotasAnteriores,
-
-                            lugarAnimal =
-                                lugarAnimal,
-
-                            tiempoSolo =
-                                tiempoSolo,
-
-                            responsableAlimentacion =
-                                responsableAlimentacion,
-
-                            responsableGastos =
-                                responsableGastos,
-
-                            capacidadVeterinaria =
-                                capacidadVeterinaria,
-
-                            motivo =
-                                motivo,
-
-                            porQueAnimal =
-                                porQueAnimal,
-
-                            expectativas =
-                                expectativas,
-
-                            compromisoAdopcion =
-                                compromisoAdopcion
+                            reporteId = reporteId,
+                            nombreCompleto = nombreCompleto,
+                            tipoDocumento = tipoDocumento,
+                            numeroDocumento = numeroDocumento,
+                            fechaNacimiento = fechaNacimiento,
+                            telefono = telefono,
+                            correo = correo,
+                            ciudad = ciudad,
+                            direccion = direccion,
+                            tipoVivienda = tipoVivienda,
+                            vivienda = vivienda,
+                            autorizacionPropietario = autorizacionPropietario,
+                            conQuienVive = conQuienVive,
+                            personasHogar = personasHogar,
+                            acuerdoFamilia = acuerdoFamilia,
+                            haTenidoMascotas = haTenidoMascotas,
+                            experienciaAnimales = experienciaAnimales,
+                            mascotasActuales = mascotasActuales,
+                            cantidadMascotas = cantidadMascotas,
+                            mascotasVacunadas = mascotasVacunadas,
+                            mascotasEsterilizadas = mascotasEsterilizadas,
+                            situacionMascotasAnteriores = situacionMascotasAnteriores,
+                            lugarAnimal = lugarAnimal,
+                            tiempoSolo = tiempoSolo,
+                            responsableAlimentacion = responsableAlimentacion,
+                            responsableGastos = responsableGastos,
+                            capacidadVeterinaria = capacidadVeterinaria,
+                            motivo = motivo,
+                            porQueAnimal = porQueAnimal,
+                            expectativas = expectativas,
+                            compromisoAdopcion = compromisoAdopcion
                         )
                     },
-                    enabled =
-                        !guardando &&
-                                !solicitudCreada,
+                    enabled = !guardando &&
+                            !solicitudCreada &&
+                            !consultandoSolicitud &&
+                            solicitudExistente == null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape =
-                        RoundedCornerShape(18.dp),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor =
-                                Beige,
-                            contentColor =
-                                BrownDark
-                        )
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Beige,
+                        contentColor = BrownDark
+                    )
                 ) {
 
                     when {
@@ -897,52 +775,46 @@ fun SolicitudAdopcionScreen(
                         guardando -> {
 
                             CircularProgressIndicator(
-                                modifier =
-                                    Modifier.size(24.dp),
+                                modifier = Modifier.size(24.dp),
                                 strokeWidth = 3.dp,
-                                color =
-                                    BrownDark
+                                color = BrownDark
                             )
                         }
 
                         solicitudCreada -> {
 
                             Icon(
-                                imageVector =
-                                    Icons.Rounded.CheckCircle,
-                                contentDescription =
-                                    null
+                                imageVector = Icons.Rounded.CheckCircle,
+                                contentDescription = null
                             )
 
-                            Spacer(
-                                modifier =
-                                    Modifier.width(8.dp)
-                            )
+                            Spacer(modifier = Modifier.width(8.dp))
 
                             Text(
-                                text =
-                                    "Solicitud registrada",
-                                fontWeight =
-                                    FontWeight.Bold
+                                text = "Solicitud registrada",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        solicitudExistente != null -> {
+
+                            Text(
+                                text = "SOLICITUD YA REGISTRADA",
+                                fontWeight = FontWeight.Bold
                             )
                         }
 
                         else -> {
 
                             Text(
-                                text =
-                                    "ENVIAR SOLICITUD",
-                                fontWeight =
-                                    FontWeight.Bold
+                                text = "ENVIAR SOLICITUD",
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
 
-                Spacer(
-                    modifier =
-                        Modifier.height(35.dp)
-                )
+                Spacer(modifier = Modifier.height(35.dp))
             }
         }
     }
@@ -958,59 +830,40 @@ private fun FormularioHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(
-                RoundedCornerShape(26.dp)
-            )
-            .background(
-                Color(0x22FFFFFF)
-            )
+            .clip(RoundedCornerShape(26.dp))
+            .background(Color(0x22FFFFFF))
             .padding(22.dp)
     ) {
 
         Row(
-            verticalAlignment =
-                Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
             Icon(
-                imageVector =
-                    Icons.Rounded.Pets,
-                contentDescription =
-                    null,
+                imageVector = Icons.Rounded.Pets,
+                contentDescription = null,
                 tint = Beige,
-                modifier =
-                    Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp)
             )
 
-            Spacer(
-                modifier =
-                    Modifier.width(16.dp)
-            )
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column {
 
                 Text(
-                    text =
-                        "Adopción responsable",
-                    color =
-                        WhiteCream,
+                    text = "Adopción responsable",
+                    color = WhiteCream,
                     fontSize = 21.sp,
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
 
-                Spacer(
-                    modifier =
-                        Modifier.height(5.dp)
-                )
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Text(
-                    text =
-                        "La información será revisada por "
-                                + "el responsable del proceso "
-                                + "de adopción.",
-                    color =
-                        Cream,
+                    text = "La información será revisada por " +
+                            "el responsable del proceso " +
+                            "de adopción.",
+                    color = Cream,
                     fontSize = 13.sp,
                     lineHeight = 19.sp
                 )
@@ -1037,51 +890,38 @@ private fun SeccionFormulario(
     ) {
 
         Row(
-            verticalAlignment =
-                Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
             Box(
                 modifier = Modifier
                     .size(34.dp)
-                    .clip(
-                        RoundedCornerShape(12.dp)
-                    )
+                    .clip(RoundedCornerShape(12.dp))
                     .background(Beige),
-                contentAlignment =
-                    Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
 
                 Text(
                     text = numero,
                     color = BrownDark,
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(
-                modifier =
-                    Modifier.width(12.dp)
-            )
+            Spacer(modifier = Modifier.width(12.dp))
 
             Text(
                 text = titulo,
                 color = WhiteCream,
                 fontSize = 19.sp,
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(12.dp)
-        )
+        Spacer(modifier = Modifier.height(12.dp))
 
         Column(
-            verticalArrangement =
-                Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             content = contenido
         )
     }
@@ -1096,8 +936,7 @@ private fun Campo(
     titulo: String,
     valor: String,
     onValorChange: (String) -> Unit,
-    keyboardType: KeyboardType =
-        KeyboardType.Text,
+    keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
     minLines: Int = 1,
     maxLength: Int? = null
@@ -1105,65 +944,35 @@ private fun Campo(
 
     OutlinedTextField(
         value = valor,
-
         onValueChange = { nuevo ->
 
-            val resultado =
-                if (maxLength != null) {
-                    nuevo.take(maxLength)
-                } else {
-                    nuevo
-                }
+            val resultado = if (maxLength != null) {
+                nuevo.take(maxLength)
+            } else {
+                nuevo
+            }
 
             onValorChange(resultado)
         },
-
         label = {
             Text(titulo)
         },
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        singleLine =
-            singleLine,
-
-        minLines =
-            minLines,
-
-        keyboardOptions =
-            KeyboardOptions(
-                keyboardType =
-                    keyboardType
-            ),
-
-        colors =
-            OutlinedTextFieldDefaults.colors(
-
-                focusedBorderColor =
-                    Beige,
-
-                unfocusedBorderColor =
-                    Color(0x88FFFFFF),
-
-                focusedLabelColor =
-                    Beige,
-
-                unfocusedLabelColor =
-                    Cream,
-
-                focusedTextColor =
-                    WhiteCream,
-
-                unfocusedTextColor =
-                    WhiteCream,
-
-                cursorColor =
-                    Beige
-            ),
-
-        shape =
-            RoundedCornerShape(16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = singleLine,
+        minLines = minLines,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Beige,
+            unfocusedBorderColor = Color(0x88FFFFFF),
+            focusedLabelColor = Beige,
+            unfocusedLabelColor = Cream,
+            focusedTextColor = WhiteCream,
+            unfocusedTextColor = WhiteCream,
+            cursorColor = Beige
+        ),
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -1179,60 +988,33 @@ private fun CampoFecha(
 ) {
 
     OutlinedTextField(
-
         value = fecha,
-
         onValueChange = {},
-
         readOnly = true,
-
         label = {
             Text(titulo)
         },
-
         trailingIcon = {
 
-            IconButton(
-                onClick = onClick
-            ) {
+            IconButton(onClick = onClick) {
 
                 Icon(
-                    imageVector =
-                        Icons.Rounded.CalendarMonth,
-                    contentDescription =
-                        "Seleccionar fecha",
+                    imageVector = Icons.Rounded.CalendarMonth,
+                    contentDescription = "Seleccionar fecha",
                     tint = Beige
                 )
             }
         },
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        colors =
-            OutlinedTextFieldDefaults.colors(
-
-                focusedBorderColor =
-                    Beige,
-
-                unfocusedBorderColor =
-                    Color(0x88FFFFFF),
-
-                focusedLabelColor =
-                    Beige,
-
-                unfocusedLabelColor =
-                    Cream,
-
-                focusedTextColor =
-                    WhiteCream,
-
-                unfocusedTextColor =
-                    WhiteCream
-            ),
-
-        shape =
-            RoundedCornerShape(16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Beige,
+            unfocusedBorderColor = Color(0x88FFFFFF),
+            focusedLabelColor = Beige,
+            unfocusedLabelColor = Cream,
+            focusedTextColor = WhiteCream,
+            unfocusedTextColor = WhiteCream
+        ),
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -1253,29 +1035,21 @@ private fun Selector(
     }
 
     Box(
-        modifier =
-            Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
 
         OutlinedTextField(
-
-            value =
-                seleccion,
-
+            value = seleccion,
             onValueChange = {},
-
             readOnly = true,
-
             label = {
                 Text(titulo)
             },
-
             trailingIcon = {
 
                 TextButton(
                     onClick = {
-                        expandido =
-                            !expandido
+                        expandido = !expandido
                     }
                 ) {
 
@@ -1285,41 +1059,20 @@ private fun Selector(
                     )
                 }
             },
-
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            colors =
-                OutlinedTextFieldDefaults.colors(
-
-                    focusedBorderColor =
-                        Beige,
-
-                    unfocusedBorderColor =
-                        Color(0x88FFFFFF),
-
-                    focusedLabelColor =
-                        Beige,
-
-                    unfocusedLabelColor =
-                        Cream,
-
-                    focusedTextColor =
-                        WhiteCream,
-
-                    unfocusedTextColor =
-                        WhiteCream
-                ),
-
-            shape =
-                RoundedCornerShape(16.dp)
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Beige,
+                unfocusedBorderColor = Color(0x88FFFFFF),
+                focusedLabelColor = Beige,
+                unfocusedLabelColor = Cream,
+                focusedTextColor = WhiteCream,
+                unfocusedTextColor = WhiteCream
+            ),
+            shape = RoundedCornerShape(16.dp)
         )
 
         DropdownMenu(
-
-            expanded =
-                expandido,
-
+            expanded = expandido,
             onDismissRequest = {
                 expandido = false
             }
@@ -1328,17 +1081,13 @@ private fun Selector(
             opciones.forEach { opcion ->
 
                 DropdownMenuItem(
-
                     text = {
                         Text(opcion)
                     },
-
                     onClick = {
 
                         onSeleccion(opcion)
-
-                        expandido =
-                            false
+                        expandido = false
                     }
                 )
             }
@@ -1363,10 +1112,9 @@ private fun filtrarEnteroPositivo(
     texto: String
 ): String {
 
-    val limpio =
-        texto.filter {
-            it.isDigit()
-        }
+    val limpio = texto.filter {
+        it.isDigit()
+    }
 
     if (limpio.isBlank()) {
         return ""
@@ -1374,8 +1122,7 @@ private fun filtrarEnteroPositivo(
 
     return try {
 
-        val numero =
-            limpio.toInt()
+        val numero = limpio.toInt()
 
         if (numero > 0) {
             numero.toString()
@@ -1383,9 +1130,7 @@ private fun filtrarEnteroPositivo(
             ""
         }
 
-    } catch (
-        e: NumberFormatException
-    ) {
+    } catch (e: NumberFormatException) {
 
         ""
     }

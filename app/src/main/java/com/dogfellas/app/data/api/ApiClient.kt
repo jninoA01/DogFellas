@@ -39,4 +39,7 @@ object ApiClient {
     val atencionMedicaApi: AtencionMedicaApi by lazy {
         retrofit.create(AtencionMedicaApi::class.java)
     }
+    val notificacionesApi: NotificacionesApi by lazy {
+       retrofit.create(NotificacionesApi::class.java)
+    }
 }

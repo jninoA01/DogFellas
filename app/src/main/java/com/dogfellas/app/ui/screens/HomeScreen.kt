@@ -1,7 +1,7 @@
+
 package com.dogfellas.app.ui.screens
 
-import com.dogfellas.app.navigation.Screen
-import androidx.compose.material.icons.rounded.Cloud
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,12 +26,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.dogfellas.app.model.homeMenuItems
 import com.dogfellas.app.ui.components.ConstructionModal
-import com.dogfellas.app.ui.components.DogFellasFooter
 import com.dogfellas.app.ui.components.DogFellasMenuItem
 
 @Composable
 fun HomeScreen(
-    navController: NavHostController
+    navController: NavHostController,
+    onLogout: () -> Unit
 ) {
 
     var showModal by remember {
@@ -43,6 +44,10 @@ fun HomeScreen(
 
     var modalIcon by remember {
         mutableStateOf("🚧")
+    }
+
+    var showLogoutDialog by remember {
+        mutableStateOf(false)
     }
 
     // ============================================================
@@ -148,57 +153,91 @@ fun HomeScreen(
             ) {
 
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
-                    Box(
-                        modifier = Modifier
-                            .size(55.dp)
-                            .clip(
-                                RoundedCornerShape(18.dp)
-                            )
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0x55D7B899),
-                                        Color(0x22D7B899)
+                    // LOGO Y NOMBRE
+
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Box(
+                            modifier = Modifier
+                                .size(55.dp)
+                                .clip(
+                                    RoundedCornerShape(18.dp)
+                                )
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            Color(0x55D7B899),
+                                            Color(0x22D7B899)
+                                        )
                                     )
                                 )
+                                .border(
+                                    1.dp,
+                                    Color(0x44FFFFFF),
+                                    RoundedCornerShape(18.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            Icon(
+                                imageVector = Icons.Rounded.Pets,
+                                contentDescription = null,
+                                tint = tan,
+                                modifier = Modifier.size(31.dp)
                             )
+                        }
+
+                        Spacer(
+                            modifier = Modifier.width(12.dp)
+                        )
+
+                        Column {
+
+                            Text(
+                                text = "DOGFELLAS",
+                                color = cream,
+                                fontSize = 25.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            )
+
+                            Text(
+                                text = "Una red para ayudar",
+                                color = tan,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    // BOTÓN CERRAR SESIÓN
+
+                    IconButton(
+                        onClick = {
+                            showLogoutDialog = true
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x22FFFFFF))
                             .border(
                                 1.dp,
-                                Color(0x44FFFFFF),
-                                RoundedCornerShape(18.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                                Color(0x33FFFFFF),
+                                CircleShape
+                            )
                     ) {
 
                         Icon(
-                            imageVector = Icons.Rounded.Pets,
-                            contentDescription = null,
-                            tint = tan,
-                            modifier = Modifier.size(31.dp)
-                        )
-                    }
-
-                    Spacer(
-                        modifier = Modifier.width(12.dp)
-                    )
-
-                    Column {
-
-                        Text(
-                            text = "DOGFELLAS",
-                            color = cream,
-                            fontSize = 25.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp
-                        )
-
-                        Text(
-                            text = "Una red para ayudar",
-                            color = tan,
-                            fontSize = 12.sp
+                            imageVector = Icons.Rounded.ExitToApp,
+                            contentDescription = "Cerrar sesión",
+                            tint = cream,
+                            modifier = Modifier.size(23.dp)
                         )
                     }
                 }
@@ -277,7 +316,7 @@ fun HomeScreen(
                         subtitle = item.subtitle,
                         onClick = {
 
-                            android.util.Log.d(
+                            Log.d(
                                 "DogFellasNav",
                                 "CLICK -> title=${item.title}, destination=${item.destination}"
                             )
@@ -328,7 +367,7 @@ fun HomeScreen(
     }
 
     // ============================================================
-    // MODAL
+    // MODAL DE CONSTRUCCIÓN
     // ============================================================
 
     if (showModal) {
@@ -339,6 +378,72 @@ fun HomeScreen(
             onDismiss = {
                 showModal = false
             }
+        )
+    }
+
+    // ============================================================
+    // DIÁLOGO CERRAR SESIÓN
+    // ============================================================
+
+    if (showLogoutDialog) {
+
+        AlertDialog(
+            onDismissRequest = {
+                showLogoutDialog = false
+            },
+
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.ExitToApp,
+                    contentDescription = null,
+                    tint = brownMedium,
+                    modifier = Modifier.size(30.dp)
+                )
+            },
+
+            title = {
+                Text(
+                    text = "Cerrar sesión",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+
+            text = {
+                Text(
+                    text = "¿Estás seguro de que deseas cerrar tu sesión en DogFellas?"
+                )
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                ) {
+                    Text(
+                        text = "Cerrar sesión",
+                        color = brown
+                    )
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                    }
+                ) {
+                    Text(
+                        text = "Cancelar",
+                        color = brownMedium
+                    )
+                }
+            },
+
+            containerColor = cream,
+            titleContentColor = brownDark,
+            textContentColor = brown
         )
     }
 }

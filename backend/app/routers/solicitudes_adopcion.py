@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -32,15 +33,11 @@ router = APIRouter(
 )
 def crear_solicitud(
     datos: SolicitudAdopcionCreate,
-    firebase_uid: str = Depends(
-        obtener_firebase_uid
-    ),
+    firebase_uid: str = Depends(obtener_firebase_uid),
     db: Session = Depends(get_db)
 ):
 
-    # -----------------------------------------------------
     # BUSCAR USUARIO AUTENTICADO
-    # -----------------------------------------------------
 
     usuario = (
         db.query(Usuario)
@@ -53,15 +50,10 @@ def crear_solicitud(
     if not usuario:
         raise HTTPException(
             status_code=404,
-            detail=(
-                "El usuario autenticado "
-                "no existe en PostgreSQL"
-            )
+            detail="El usuario autenticado no existe en PostgreSQL"
         )
 
-    # -----------------------------------------------------
     # COMPROBAR ANIMAL
-    # -----------------------------------------------------
 
     animal = (
         db.query(AnimalReportado)
@@ -74,36 +66,24 @@ def crear_solicitud(
     if not animal:
         raise HTTPException(
             status_code=404,
-            detail=(
-                "El animal indicado "
-                "no existe"
-            )
+            detail="El animal indicado no existe"
         )
 
-    # -----------------------------------------------------
-    # COMPROBAR QUE ESTÉ EN ADOPCIÓN
-    # -----------------------------------------------------
+    # COMPROBAR DISPONIBILIDAD PARA ADOPCIÓN
 
     if animal.estado != "EN_ADOPCION":
         raise HTTPException(
             status_code=400,
-            detail=(
-                "El animal seleccionado "
-                "no está disponible para adopción"
-            )
+            detail="El animal seleccionado no está disponible para adopción"
         )
 
-    # -----------------------------------------------------
     # COMPROBAR SOLICITUD EXISTENTE
-    # -----------------------------------------------------
 
     solicitud_existente = (
         db.query(SolicitudAdopcion)
         .filter(
-            SolicitudAdopcion.reporte_id
-            == datos.reporte_id,
-            SolicitudAdopcion.usuario_id
-            == usuario.id
+            SolicitudAdopcion.reporte_id == datos.reporte_id,
+            SolicitudAdopcion.usuario_id == usuario.id
         )
         .first()
     )
@@ -111,20 +91,14 @@ def crear_solicitud(
     if solicitud_existente:
         raise HTTPException(
             status_code=409,
-            detail=(
-                "Ya existe una solicitud "
-                "de adopción para este animal"
-            )
+            detail="Ya existe una solicitud de adopción para este animal"
         )
 
-    # -----------------------------------------------------
     # CREAR SOLICITUD
-    # -----------------------------------------------------
 
     nueva_solicitud = SolicitudAdopcion(
 
         reporte_id=datos.reporte_id,
-
         usuario_id=usuario.id,
 
         nombre_completo=datos.nombre_completo,
@@ -138,57 +112,31 @@ def crear_solicitud(
         direccion=datos.direccion,
         tipo_vivienda=datos.tipo_vivienda,
         vivienda=datos.vivienda,
-        autorizacion_propietario=(
-            datos.autorizacion_propietario
-        ),
+        autorizacion_propietario=datos.autorizacion_propietario,
 
         con_quien_vive=datos.con_quien_vive,
         personas_hogar=datos.personas_hogar,
         acuerdo_familia=datos.acuerdo_familia,
 
-        ha_tenido_mascotas=(
-            datos.ha_tenido_mascotas
-        ),
-        experiencia_animales=(
-            datos.experiencia_animales
-        ),
-        mascotas_actuales=(
-            datos.mascotas_actuales
-        ),
-        cantidad_mascotas=(
-            datos.cantidad_mascotas
-        ),
-        mascotas_vacunadas=(
-            datos.mascotas_vacunadas
-        ),
-        mascotas_esterilizadas=(
-            datos.mascotas_esterilizadas
-        ),
-        situacion_mascotas_anteriores=(
-            datos.situacion_mascotas_anteriores
-        ),
+        ha_tenido_mascotas=datos.ha_tenido_mascotas,
+        experiencia_animales=datos.experiencia_animales,
+        mascotas_actuales=datos.mascotas_actuales,
+        cantidad_mascotas=datos.cantidad_mascotas,
+        mascotas_vacunadas=datos.mascotas_vacunadas,
+        mascotas_esterilizadas=datos.mascotas_esterilizadas,
+        situacion_mascotas_anteriores=datos.situacion_mascotas_anteriores,
 
         lugar_animal=datos.lugar_animal,
         tiempo_solo=datos.tiempo_solo,
-        responsable_alimentacion=(
-            datos.responsable_alimentacion
-        ),
-        responsable_gastos=(
-            datos.responsable_gastos
-        ),
-        capacidad_veterinaria=(
-            datos.capacidad_veterinaria
-        ),
+        responsable_alimentacion=datos.responsable_alimentacion,
+        responsable_gastos=datos.responsable_gastos,
+        capacidad_veterinaria=datos.capacidad_veterinaria,
 
         motivo=datos.motivo,
-        por_que_animal=(
-            datos.por_que_animal
-        ),
+        por_que_animal=datos.por_que_animal,
         expectativas=datos.expectativas,
 
-        compromiso_adopcion=(
-            datos.compromiso_adopcion
-        ),
+        compromiso_adopcion=datos.compromiso_adopcion,
 
         estado=datos.estado
     )
@@ -210,9 +158,7 @@ def crear_solicitud(
 )
 def obtener_solicitud_existente(
     reporte_id: int,
-    firebase_uid: str = Depends(
-        obtener_firebase_uid
-    ),
+    firebase_uid: str = Depends(obtener_firebase_uid),
     db: Session = Depends(get_db)
 ):
 
@@ -227,19 +173,14 @@ def obtener_solicitud_existente(
     if not usuario:
         raise HTTPException(
             status_code=404,
-            detail=(
-                "El usuario autenticado "
-                "no existe en PostgreSQL"
-            )
+            detail="El usuario autenticado no existe en PostgreSQL"
         )
 
     solicitud = (
         db.query(SolicitudAdopcion)
         .filter(
-            SolicitudAdopcion.reporte_id
-            == reporte_id,
-            SolicitudAdopcion.usuario_id
-            == usuario.id
+            SolicitudAdopcion.reporte_id == reporte_id,
+            SolicitudAdopcion.usuario_id == usuario.id
         )
         .first()
     )
@@ -248,7 +189,7 @@ def obtener_solicitud_existente(
 
 
 # =========================================================
-# OBTENER SOLICITUD POR ID
+# OBTENER SOLICITUD POR ID (PROTEGIDA)
 # =========================================================
 
 @router.get(
@@ -257,14 +198,33 @@ def obtener_solicitud_existente(
 )
 def obtener_solicitud(
     solicitud_id: int,
+    firebase_uid: str = Depends(obtener_firebase_uid),
     db: Session = Depends(get_db)
 ):
+
+    # BUSCAR USUARIO AUTENTICADO
+
+    usuario = (
+        db.query(Usuario)
+        .filter(
+            Usuario.firebase_uid == firebase_uid
+        )
+        .first()
+    )
+
+    if not usuario:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuario no encontrado"
+        )
+
+    # BUSCAR SOLICITUD PROPIA
 
     solicitud = (
         db.query(SolicitudAdopcion)
         .filter(
-            SolicitudAdopcion.id
-            == solicitud_id
+            SolicitudAdopcion.id == solicitud_id,
+            SolicitudAdopcion.usuario_id == usuario.id
         )
         .first()
     )
@@ -276,3 +236,4 @@ def obtener_solicitud(
         )
 
     return solicitud
+
